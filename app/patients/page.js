@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import DataLoader from '../components/DataLoader';
+import config from '../config';
 
 const PatientsPage = () => {
   const [patients, setPatients] = useState([]);
@@ -14,7 +15,7 @@ const PatientsPage = () => {
     const fetchPatients = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:8000/patients');
+        const response = await fetch(`${config.apiUrl}/patients`);
         
         if (!response.ok) {
           throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -57,7 +58,7 @@ const PatientsPage = () => {
             ) : error ? (
               <div className="bg-red-800 text-white p-4 rounded-md">
                 <p>Error loading patients: {error}</p>
-                <p className="mt-2">Make sure the backend server is running at http://localhost:8000</p>
+                <p className="mt-2">Make sure the backend server is running and accessible.</p>
               </div>
             ) : patients.length === 0 ? (
               <div className="text-center py-12">

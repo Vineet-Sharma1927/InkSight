@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List
 from pathlib import Path
 import json
+import os
 from datetime import datetime
 
 from .pdf_parser import ResponseAnalyzer
@@ -28,10 +29,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Get allowed origins from environment variable
+# Format: comma-separated list, e.g. "http://localhost:3000,https://example.com"
+allow_origins_env = os.getenv("ALLOW_ORIGINS", "http://localhost:3000")
+allow_origins = [origin.strip() for origin in allow_origins_env.split(",")]
+
 # Add CORS middleware to allow requests from the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, specify your frontend domain
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -191,6 +197,12 @@ async def update_responses(patient_id: str, responses: List[ImageResponse]):
         raise HTTPException(status_code=404, detail=f"Patient with ID {patient_id} not found or responses not updated")
     
     return {"success": True, "message": f"Responses updated for patient {patient_id}"}
+
+# Add health check endpoint for Render
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring."""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 if __name__ == "__main__":
     import uvicorn

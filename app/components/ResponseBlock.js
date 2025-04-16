@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Listbox } from '@headlessui/react';
 import { ChevronUpDownIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import config from '../config';
 
 // Position options
 const positionOptions = ['^', '<', '>', 'v', '.'];
@@ -299,7 +300,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     setAnalysisMessage('Analyzing response...');
 
     try {
-      const response = await fetch('http://localhost:8000/analyze-response', {
+      const response = await fetch(`${config.apiUrl}/analyze-response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

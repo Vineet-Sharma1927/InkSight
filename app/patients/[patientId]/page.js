@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DataLoader from '../../components/DataLoader';
 import ResponseSummaryTable from '../../components/ResponseSummaryTable';
+import config from '../../config';
 
 const PatientDetailPage = () => {
   const params = useParams();
@@ -21,7 +22,7 @@ const PatientDetailPage = () => {
     const fetchPatientData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/patient/${patientId}`);
+        const response = await fetch(`${config.apiUrl}/patient/${patientId}`);
         
         if (!response.ok) {
           throw new Error(`Error: ${response.status} - ${response.statusText}`);

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: inksight-api
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: inksight
+      - key: PORT
+        value: 8000
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: ALLOW_ORIGINS
+        value: https://inksight.vercel.app
+    healthCheckPath: /health 

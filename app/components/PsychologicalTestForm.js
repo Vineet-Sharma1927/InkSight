@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResponseBlock from './ResponseBlock';
 import NavigationGuard from './NavigationGuard';
+import config from '../config';
 
 const PsychologicalTestForm = () => {
   const [responses, setResponses] = useState([{ id: 1 }]);
@@ -151,7 +152,7 @@ const PsychologicalTestForm = () => {
       };
       
       // Send data to the backend
-      const response = await fetch('http://localhost:8000/submit-patient', {
+      const response = await fetch(`${config.apiUrl}/submit-patient`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
