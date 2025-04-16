@@ -1,0 +1,107 @@
+image_id,response_text,location,fq
+1,"A bat flying in the air",W,o
+1,"Two people dancing",D1,u
+1,"A butterfly",W,o
+1,"A human figure",D2,o
+1,"Two bears climbing",D3,u
+1,"A pair of lungs",D4,+
+1,"A person wearing a mask",D5,-
+1,"Two animals fighting",D6,u
+1,"A fox head",D7,-
+1,"A creature with wings",W,o
+1,butterfly,W,o
+1,bat,W,o
+1,moth,W,o
+1,insect,W,o
+1,winged animal,W,o
+1,two people dancing,D1,o
+1,two people,D1,o
+1,people,D1,o
+1,humans,D1,o
+1,bears,D2,u
+1,animals,D2,u
+1,heads,D3,o
+1,faces,D3,o
+1,mask,D3,o
+1,cockroach,D4,u
+1,beetle,D4,u
+1,insect parts,D4,u
+1,animal paws,D5,o
+1,hands,D5,o
+1,claws,D5,o
+1,rabbit,D6,u
+1,squirrel,D6,u
+1,rodent,D6,u
+1,bowtie,D7,o
+1,bow,D7,o
+1,red ribbon,D7,o
+1,blood,D7,o
+1,fire,D8,u
+1,explosion,D8,u
+1,smoke,D8,u
+2,animal,W,o
+2,monsters,D1,o
+2,giants,D1,o
+2,elephants,D1,o
+2,bears,D1,o
+2,clouds,D2,o
+2,blood,D3,u
+2,fire,D3,u
+2,anatomy,D4,o
+2,pelvis,D4,o
+2,internal organs,D4,o
+3,two people,W,o
+3,people,W,o
+3,waiters,W,o
+3,women,W,o
+3,bow,D1,o
+3,bird,D2,u
+3,butterfly,D2,u
+3,bowtie,D3,o
+3,crab,D4,o
+3,lobster,D4,o
+3,sea creature,D4,o
+4,giant,W,o
+4,monster,W,o
+4,human figure,W,o
+4,tree,D1,u
+4,boot,D2,o
+4,foot,D2,o
+4,shoe,D2,o
+5,bat,W,o
+5,butterfly,W,o
+5,moth,W,o
+5,rabbit head,D1,o
+5,animal head,D1,o
+5,legs,D2,o
+5,claws,D2,o
+6,animal skin,W,o
+6,rug,W,o
+6,pelt,W,o
+6,fur,W,o
+6,cat,D1,o
+6,animal head,D1,o
+6,whiskers,D2,o
+7,clouds,W,o
+7,girls,D1,o
+7,women,D1,o
+7,people,D1,o
+7,ponytail,D2,o
+7,feather,D2,o
+8,animals,W,o
+8,wolves,D1,o
+8,bears,D1,o
+8,mountain,D2,o
+8,landscape,D2,o
+9,monsters,W,o
+9,crabs,D1,o
+9,insects,D1,o
+9,anatomy,D2,o
+9,fire,D3,u
+10,crabs,W,o
+10,insects,W,o
+10,spiders,W,o
+10,sea creatures,W,o
+10,faces,D1,o
+10,masks,D1,o
+10,animals,D2,o
