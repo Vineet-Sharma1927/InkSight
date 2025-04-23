@@ -36,7 +36,7 @@ This guide will walk you through the steps to deploy the InkSight psychological 
    - **Add Environment Variables**:
      - `MONGO_URI`: Your MongoDB Atlas connection string
      - `PORT`: Leave this blank, Render will set it automatically
-     - `MONGO_DB`: inksight (or your preferred database name)
+     - `MONGO_DB`: inksight (or your preferred database name) 
 
 5. Click "Create Web Service"
 6. Note your Render service URL (e.g., `https://inksight-backend.onrender.com`)
