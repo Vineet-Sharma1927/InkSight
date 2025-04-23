@@ -1,69 +1,74 @@
-# Psychological Test Form
+# InkSight Psychological Test Form
 
-A modern and interactive frontend form for psychological testing web applications. This form allows doctors to record patient responses to test images with a clean, professional interface.
+A web application for administering and analyzing psychological tests, specifically designed for Rorschach inkblot tests.
 
 ## Features
 
-- **Modern UI**: Built with Next.js and Tailwind CSS for a clean, professional look
-- **Smooth Animations**: Uses Framer Motion for fluid transitions and interactions
-- **Responsive Design**: Works seamlessly on both mobile and desktop devices
-- **Dynamic Form Fields**: Add and remove response blocks as needed
-- **Form Validation**: Built-in validation for all form fields
-- **Accessible**: Follows accessibility best practices
+- Input and analyze responses to inkblot images
+- Store and retrieve patient data
+- Generate summary reports
+- User-friendly interface with responsive design
 
-## Technologies Used
+## Technology Stack
 
-- **Next.js**: React framework for production
-- **Tailwind CSS**: Utility-first CSS framework
-- **Framer Motion**: Animation library for React
-- **Headless UI**: Unstyled, accessible UI components
-- **Heroicons**: Beautiful hand-crafted SVG icons
+- **Frontend**: Next.js, React, Tailwind CSS, Framer Motion
+- **Backend**: FastAPI, Uvicorn
+- **Database**: MongoDB
+- **Deployment**: Vercel (frontend), Render (backend)
 
-## Getting Started
+## Recent Updates
+
+- Added common API configuration for deployment
+- Set up CORS for deployment environments
+- Created deployment guide
+- Improved frontend-backend integration
+- Updated environment variable handling
+
+## Deployment
+
+This application is configured for deployment with:
+- Frontend on Vercel
+- Backend on Render
+- MongoDB Atlas for the database
+
+For full deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)
+
+## Local Development
 
 ### Prerequisites
 
-- Node.js 14.x or later
-- npm or yarn
+- Node.js (>= 18.0.0)
+- Python (>= 3.8)
+- MongoDB
 
-### Installation
+### Setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/psychological-test-form.git
-   cd psychological-test-form
+1. Clone the repository
+2. Install frontend dependencies:
    ```
-
-2. Install dependencies:
-   ```bash
    npm install
-   # or
-   yarn install
    ```
+3. Install backend dependencies:
+   ```
+   cd backend
+   pip install -r requirements.txt
+   ```
+4. Start MongoDB (local or via connection string)
+5. Set environment variables:
+   - Create `.env.local` in the backend directory with MongoDB connection info
 
-3. Run the development server:
-   ```bash
+### Running the Application
+
+1. Start the backend server:
+   ```
+   cd backend
+   python run.py
+   ```
+2. Start the frontend development server:
+   ```
    npm run dev
-   # or
-   yarn dev
    ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
-
-## Form Fields
-
-Each response form block contains the following fields:
-
-1. **Position** – Dropdown (^, <, >, v, .)
-2. **Response Text** – Text Input
-3. **Location** – Auto-filled input (but editable)
-4. **FQ** – Auto-filled input (but editable)
-5. **Number of Responses** – Number Input
-6. **Determinants** – Multi-select Dropdown
-7. **Content** – Multi-select Dropdown
-8. **DQ** – Dropdown (+, o, v, (v/+))
-9. **Z-score** – Dropdown (ZW, ZA, ZD, ZS)
-10. **Special Score** – Multi-select
+3. Access the application at `http://localhost:3000`
 
 ## License
 

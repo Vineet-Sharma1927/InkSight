@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DataLoader from '../../components/DataLoader';
 import ResponseSummaryTable from '../../components/ResponseSummaryTable';
-import config from '../../config';
+import { api } from '../../lib/api';
 
 const PatientDetailPage = () => {
   const params = useParams();
@@ -22,13 +22,7 @@ const PatientDetailPage = () => {
     const fetchPatientData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${config.apiUrl}/patient/${patientId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} - ${response.statusText}`);
-        }
-        
-        const data = await response.json();
+        const data = await api.getPatientById(patientId);
         setPatient(data);
         
         // If there are responses, select the first image by default

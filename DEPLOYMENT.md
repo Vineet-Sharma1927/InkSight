@@ -1,105 +1,116 @@
-# InkSight Deployment Guide
+# Deployment Guide for InkSight
 
-This document outlines the steps to deploy the InkSight application, with the frontend on Vercel and the backend on Render.
+This guide will walk you through the steps to deploy the InkSight psychological test system with:
+- Backend on Render
+- Frontend on Vercel
+- MongoDB Atlas for the database
 
 ## Prerequisites
 
-- GitHub account
-- Vercel account
-- Render account
-- MongoDB Atlas account (for the database)
+- GitHub account with your project code
+- Render account (https://render.com)
+- Vercel account (https://vercel.com)
+- MongoDB Atlas account (https://www.mongodb.com/cloud/atlas)
 
-## Backend Deployment (Render)
+## Step 1: Set up MongoDB Atlas
 
-1. **Prepare MongoDB Atlas**
-   - Create a MongoDB Atlas account if you don't have one
-   - Create a new cluster
-   - Create a database named `inksight`
-   - Create a database user with read/write permissions
-   - Whitelist connections from anywhere (`0.0.0.0/0`) for simplicity, but in production, you should restrict this to your application's IP
+1. Sign up for a free MongoDB Atlas account
+2. Create a new cluster (the free tier is sufficient to start)
+3. Set up a database user with read/write permissions
+4. Configure network access (allow access from anywhere for development or specific IPs for production)
+5. Get your MongoDB connection string:
+   - Go to "Connect" > "Connect your application"
+   - Copy the connection string (it will look like: `mongodb+srv://username:password@clusterXXX.mongodb.net/`)
+   - Replace `<password>` with your database user's password
 
-2. **Deploy to Render**
-   - Sign up/login to Render
-   - Click "New" and select "Web Service"
-   - Connect your GitHub repository
-   - Select the repository containing your application
-   - Configure the service:
-     - Name: `inksight-api` (or your preferred name)
-     - Environment: Python
-     - Region: Choose the region closest to your users
-     - Branch: `main` (or your deployment branch)
-     - Build Command: `pip install -r requirements.txt`
-     - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-     - Instance Type: Free (for development/testing)
-     - Add the following environment variables:
-       - `MONGODB_URI`: Your MongoDB Atlas connection string
-       - `MONGODB_DB_NAME`: `inksight`
-       - `ALLOW_ORIGINS`: Your frontend URL (e.g., `https://inksight.vercel.app`)
-     - Click "Create Web Service"
+## Step 2: Deploy the Backend to Render
 
-3. **Verify Backend Deployment**
-   - Once deployed, Render will provide a URL for your service
-   - Visit this URL to confirm the API is running
-   - Test the `/health` endpoint to ensure it returns a status of "ok"
-   - Make note of your backend URL for frontend configuration
+1. Push your code to a GitHub repository
+2. Log in to Render and click "New Web Service"
+3. Connect your GitHub repository
+4. Configure the service:
+   - **Name**: inksight-backend (or your preferred name)
+   - **Environment**: Python
+   - **Build Command**: `pip install -r backend/requirements.txt`
+   - **Start Command**: `cd backend && python run.py`
+   - **Add Environment Variables**:
+     - `MONGO_URI`: Your MongoDB Atlas connection string
+     - `PORT`: Leave this blank, Render will set it automatically
+     - `MONGO_DB`: inksight (or your preferred database name)
 
-## Frontend Deployment (Vercel)
+5. Click "Create Web Service"
+6. Note your Render service URL (e.g., `https://inksight-backend.onrender.com`)
 
-1. **Prepare Environment Variables**
-   - You'll need to set up the following environment variable in Vercel:
-     - `NEXT_PUBLIC_API_URL`: The URL of your backend (e.g., `https://inksight-api.onrender.com`)
+## Step 3: Update Frontend API Configuration
 
-2. **Deploy to Vercel**
-   - Sign up/login to Vercel
-   - Click "New Project"
-   - Import your GitHub repository
-   - Configure the project:
-     - Framework Preset: Next.js
-     - Root Directory: Leave as `/` (unless your frontend is in a subfolder)
-     - Build Command: `next build`
-     - Output Directory: `.next`
-     - Set environment variables:
-       - Add `NEXT_PUBLIC_API_URL` with your backend URL
-     - Click "Deploy"
+1. Open `app/lib/api.js` and update the `API_BASE_URL` to point to your Render deployment:
+   ```javascript
+   export const API_BASE_URL = isDevelopment 
+     ? 'http://localhost:8000' 
+     : 'https://inksight-backend.onrender.com'; // Update with your actual Render URL
+   ```
 
-3. **Verify Frontend Deployment**
-   - Once deployed, Vercel will provide a URL for your application
-   - Visit this URL to confirm the frontend is running correctly
-   - Test the integration with the backend by creating a test patient
+2. Open `backend/app/main.py` and update the CORS configuration to include your Vercel domain:
+   ```python
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=[
+           "http://localhost:3000", 
+           "https://inksight.vercel.app"  # Update with your actual Vercel domain
+       ],
+       allow_credentials=True,
+       allow_methods=["*"],
+       allow_headers=["*"],
+   )
+   ```
 
-## Post-Deployment Steps
+## Step 4: Deploy the Frontend to Vercel
 
-1. **Update Backend CORS**
-   - If needed, update the `ALLOW_ORIGINS` environment variable in Render to include your Vercel URL
+1. Push the updated code to your GitHub repository
+2. Log in to Vercel and click "New Project"
+3. Import your GitHub repository
+4. Configure the project:
+   - **Framework Preset**: Next.js
+   - **Build Command**: `npm run build` (should be set automatically)
+   - **Output Directory**: `.next` (should be set automatically)
+   - **Install Command**: `npm install` (should be set automatically)
 
-2. **Custom Domain (Optional)**
-   - For both Vercel and Render, you can add a custom domain in their respective settings
-   - Follow the DNS configuration instructions provided by each platform
+5. Click "Deploy"
+6. Note your Vercel deployment URL (e.g., `https://inksight.vercel.app`)
 
-3. **Performance Monitoring**
-   - Set up monitoring and alerts in both platforms to keep track of service health
-   - Consider upgrading plans for production usage with higher traffic
+## Step 5: Update CORS Configuration
+
+After deploying to Vercel, make sure to update the CORS configuration in your backend to allow requests from your Vercel domain:
+
+1. In Render, go to your web service
+2. Add or update the environment variable:
+   - `ALLOWED_ORIGINS`: `http://localhost:3000,https://your-vercel-domain.vercel.app`
+
+## Step 6: Testing the Deployment
+
+1. Visit your Vercel deployment URL
+2. Test creating a new patient/test
+3. Test viewing patient data
+4. Check that all API calls to the backend are working correctly
 
 ## Troubleshooting
 
-- **CORS Issues**: If you encounter CORS errors, verify that the `ALLOW_ORIGINS` in your backend includes the correct frontend URL
-- **500 Errors**: Check the Render logs for any server-side errors
-- **404 Errors**: Ensure paths are correctly configured in your application
-- **Slow Initial Response**: Free tier services may have cold starts; consider upgrading for production use
+### Backend Issues:
+- **Database Connection Errors**: Verify your MongoDB connection string and network access settings
+- **CORS Errors**: Ensure the CORS configuration allows your Vercel domain
+- **Environment Variables**: Double-check that all required environment variables are set in Render
 
-## Maintenance
+### Frontend Issues:
+- **API Connection Errors**: Verify the API_BASE_URL in api.js is correct
+- **Build Errors**: Check Vercel build logs for any errors
+- **Rendering Issues**: Check browser console for JavaScript errors
 
-- **Updating the Application**:
-  - Push changes to your repository
-  - Vercel and Render will automatically redeploy your application
-- **Database Backups**:
-  - Configure regular backups of your MongoDB data through Atlas
-- **Environment Variables**:
-  - If you need to change environment variables, update them in the respective platform's dashboard
+## Local Development After Deployment
 
-## Security Considerations
+The API configuration is designed to use the local backend during development and the deployed backend in production.
 
-- Use environment variables for all sensitive information
-- Never commit .env files to your repository
-- Consider implementing rate limiting for your API
-- Set up proper authentication for your application 
+To run the application locally:
+1. Start the backend server: `cd backend && python run.py`
+2. Start the frontend development server: `npm run dev`
+
+The application will automatically use `http://localhost:8000` as the API base URL when running in development mode. 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Listbox } from '@headlessui/react';
 import { ChevronUpDownIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import config from '../config';
+import { api } from '../lib/api';
 
 // Position options
 const positionOptions = ['^', '<', '>', 'v', '.'];
@@ -300,18 +300,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     setAnalysisMessage('Analyzing response...');
 
     try {
-      const response = await fetch(`${config.apiUrl}/analyze-response`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          response_text: responseText,
-          image_id: imageId,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await api.analyzeResponse(responseText, imageId);
 
       if (data.match_found) {
         setLocation(data.location);
@@ -646,7 +635,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
             <div className="mt-1 p-3 bg-gray-800 border border-gray-500 rounded-md max-h-60 overflow-y-auto">
               {contentOptions.map(option => (
                 <div key={option.id} className="flex items-center mb-2">
-                  <input
+          <input 
                     type="checkbox"
                     id={`content-${option.id}`}
                     checked={content.includes(option.id)}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ResponseBlock from './ResponseBlock';
 import NavigationGuard from './NavigationGuard';
-import config from '../config';
+import { api } from '../lib/api';
 
 const PsychologicalTestForm = () => {
   const [responses, setResponses] = useState([{ id: 1 }]);
@@ -151,20 +151,8 @@ const PsychologicalTestForm = () => {
         responses: patientResponses
       };
       
-      // Send data to the backend
-      const response = await fetch(`${config.apiUrl}/submit-patient`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(patientData),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
-      }
-      
-      const result = await response.json();
+      // Use the API utility to submit patient data
+      const result = await api.submitPatient(patientData);
       
       // Show success status with link to results
       setSubmissionStatus({
@@ -256,8 +244,8 @@ const PsychologicalTestForm = () => {
         // Save current image responses first
         saveCurrentImageResponses();
         
-        // Increment to the next image
-        setCurrentImage(currentImage + 1);
+      // Increment to the next image
+      setCurrentImage(currentImage + 1);
         
         // Clear responses completely and create a fresh one
         // Using a unique timestamp as part of the ID to ensure React treats this as a completely new component
@@ -265,7 +253,7 @@ const PsychologicalTestForm = () => {
         setResponses([{ id: newId }]);
         
         // Reset UI state
-        setShowNextImageButton(false);
+      setShowNextImageButton(false);
       } catch (error) {
         console.error("Error moving to next image:", error);
         alert("There was an error moving to the next image. Please try again.");
