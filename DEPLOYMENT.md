@@ -100,6 +100,72 @@ After deploying to Vercel, make sure to update the CORS configuration in your ba
 - **CORS Errors**: Ensure the CORS configuration allows your Vercel domain
 - **Environment Variables**: Double-check that all required environment variables are set in Render
 
+### MongoDB Atlas SSL Issues on Render.com
+
+If you encounter SSL handshake errors with MongoDB Atlas on Render.com, like:
+
+```
+pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1006)
+```
+
+This is usually caused by a compatibility issue between the versions of Python, OpenSSL, and the MongoDB drivers. Here's how to fix it:
+
+1. **Update your MongoDB connection string format**:
+   - Make sure you're using the SRV format: `mongodb+srv://username:password@cluster.mongodb.net/database`
+   - Remove any connection options from the URL and set them in the code instead
+
+2. **Add connection options in your code**:
+   - Our updated implementation already includes the necessary settings to handle SSL errors
+
+3. **Check MongoDB Atlas Network Settings**:
+   - Go to Network Access in MongoDB Atlas
+   - Add the IP address of your Render.com service (or use 0.0.0.0/0 to allow all IPs temporarily)
+   - Ensure "Allow access from anywhere" is enabled for testing
+
+4. **Check Render.com environment variables**:
+   - Make sure your `MONGO_URI` is correct and includes the SRV format
+   - Verify the username and password in the URI are properly URL-encoded
+   
+5. **Force TLS/SSL settings in connection**:
+   - Our updated code includes settings like `tlsAllowInvalidCertificates=True` which helps with SSL issues
+
+6. **Use dependency version pinning**:
+   - Our updated requirements.txt specifies exact versions of libraries known to work together
+   - pymongo[srv]==4.6.1
+   - dnspython==2.4.2
+   - pyopenssl==24.0.0
+   - certifi==2024.2.2
+   
+If you continue to have issues, try deploying a basic "connection-only" app to diagnose the specific issue by running our included startup diagnostics command.
+
+### Running the MongoDB Diagnostic Tool
+
+To help diagnose MongoDB connection issues, we've included a diagnostic tool. You can run it either locally or on Render.com:
+
+#### Running locally:
+```bash
+cd backend
+python mongo_diagnostic.py
+```
+
+#### Running on Render.com:
+1. In Render dashboard, go to your web service
+2. Open the Shell tab
+3. Execute the following commands:
+```bash
+cd /opt/render/project/src/backend
+python mongo_diagnostic.py
+```
+
+The diagnostic tool will:
+1. Display system information (Python version, SSL version, etc.)
+2. Test DNS resolution for your MongoDB host
+3. Test TCP connectivity to MongoDB servers
+4. Attempt to establish a MongoDB connection
+5. Provide detailed error messages and suggested fixes
+
+This is particularly useful for diagnosing SSL/TLS issues with MongoDB Atlas on Render.com.
+
 ### Frontend Issues:
 - **API Connection Errors**: Verify the API_BASE_URL in api.js is correct
 - **Build Errors**: Check Vercel build logs for any errors

@@ -4,17 +4,56 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any, Annotated
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 import os
+import ssl
+import urllib.parse
 
 # MongoDB connection - get credentials from environment or use defaults
 MONGO_URI = os.environ.get("MONGO_URI")
 DATABASE_NAME = os.environ.get("MONGO_DB", "psychological_test_db")
 
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
-db = client[DATABASE_NAME]
+# Configure SSL options for MongoDB Atlas
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Print connection info for debugging (remove in production)
+print(f"Connecting to MongoDB: DATABASE_NAME={DATABASE_NAME}")
+
+# Create client with SSL options
+try:
+    if MONGO_URI:
+        client = motor.motor_asyncio.AsyncIOMotorClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=20000,
+            connectTimeoutMS=20000,
+            ssl=True,
+            ssl_cert_reqs=ssl.CERT_NONE,
+            retryWrites=False,
+            tls=True,
+            tlsAllowInvalidCertificates=True
+        )
+    else:
+        print("Warning: No MONGO_URI found. Using default localhost connection.")
+        client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
+    
+    db = client[DATABASE_NAME]
+    print("MongoDB client initialized successfully")
+except Exception as e:
+    print(f"Error initializing MongoDB client: {str(e)}")
+    # Fallback to ensure the app doesn't crash completely during initialization
+    client = None
+    db = None
 
 # Create indexes
 async def create_indexes():
-    await db.patients.create_index("patient_id", unique=True)
+    try:
+        if db:
+            await db.patients.create_index("patient_id", unique=True)
+            print("MongoDB indexes created successfully")
+        else:
+            print("Cannot create indexes: Database connection not established")
+    except Exception as e:
+        print(f"Error creating indexes: {str(e)}")
 
 # Convert ObjectId to str and validate ObjectId
 def validate_object_id(v: Any) -> ObjectId:
@@ -173,29 +212,53 @@ class PatientBasicInfo(BaseModel):
 
 # Database operations
 async def insert_patient(patient_data: dict) -> str:
-    patient = await db.patients.insert_one(patient_data)
-    return str(patient.inserted_id)
+    try:
+        if not db:
+            raise Exception("Database connection not established")
+        patient = await db.patients.insert_one(patient_data)
+        return str(patient.inserted_id)
+    except Exception as e:
+        print(f"Error inserting patient: {str(e)}")
+        raise
 
 async def get_patient_by_id(patient_id: str) -> Optional[dict]:
-    return await db.patients.find_one({"patient_id": patient_id})
+    try:
+        if not db:
+            raise Exception("Database connection not established")
+        return await db.patients.find_one({"patient_id": patient_id})
+    except Exception as e:
+        print(f"Error getting patient by ID: {str(e)}")
+        raise
 
 async def get_all_patients() -> List[dict]:
-    patients = []
-    cursor = db.patients.find({}, {
-        "patient_id": 1,
-        "name": 1,
-        "age": 1,
-        "gender": 1,
-        "test_date": 1,
-        "created_at": 1
-    })
-    async for document in cursor:
-        patients.append(document)
-    return patients
+    try:
+        if not db:
+            raise Exception("Database connection not established")
+        patients = []
+        cursor = db.patients.find({}, {
+            "patient_id": 1,
+            "name": 1,
+            "age": 1,
+            "gender": 1,
+            "test_date": 1,
+            "created_at": 1
+        })
+        async for document in cursor:
+            patients.append(document)
+        return patients
+    except Exception as e:
+        print(f"Error getting all patients: {str(e)}")
+        return []
 
 async def update_patient_responses(patient_id: str, responses: List[dict]) -> bool:
-    result = await db.patients.update_one(
-        {"patient_id": patient_id}, 
-        {"$set": {"responses": responses}}
-    )
-    return result.modified_count > 0 
+    try:
+        if not db:
+            raise Exception("Database connection not established")
+        result = await db.patients.update_one(
+            {"patient_id": patient_id}, 
+            {"$set": {"responses": responses}}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error updating patient responses: {str(e)}")
+        return False 

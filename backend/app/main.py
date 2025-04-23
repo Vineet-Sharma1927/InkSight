@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 from pathlib import Path
 import json
 from datetime import datetime
+import asyncio
 
 from .pdf_parser import ResponseAnalyzer
 from .db import (
@@ -20,6 +21,7 @@ from .db import (
     create_indexes
 )
 from .test_data import add_test_data
+from .startup import check_mongodb_connection
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -63,11 +65,27 @@ class TableInfo(BaseModel):
 
 @app.on_event("startup")
 async def startup_db_client():
-    # Create indexes
-    await create_indexes()
+    """
+    Startup event to initialize database connection and indexes
+    """
+    print("Starting application initialization...")
     
-    # Add test data if database is empty
-    await add_test_data()
+    # Check MongoDB connection first
+    connection_ok = await check_mongodb_connection()
+    if not connection_ok:
+        print("⚠️ Warning: MongoDB connection check failed, but continuing startup...")
+    
+    try:
+        # Create indexes
+        await create_indexes()
+        
+        # Add test data if database is empty
+        await add_test_data()
+        
+        print("✅ Application initialization complete!")
+    except Exception as e:
+        print(f"❌ Error during startup: {str(e)}")
+        print("⚠️ Application will continue to run but may have limited functionality")
 
 @app.get("/")
 async def root():
