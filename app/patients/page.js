@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import DataLoader from '../components/DataLoader';
 import { api } from '../lib/api';
 
-const PatientsPage = () => {
+function PatientList() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +52,7 @@ const PatientsPage = () => {
             ) : error ? (
               <div className="bg-red-800 text-white p-4 rounded-md">
                 <p>Error loading patients: {error}</p>
-                <p className="mt-2">Make sure the backend server is running at http://localhost:8000</p>
+                <p className="mt-2">Make sure the backend server is running</p>
               </div>
             ) : patients.length === 0 ? (
               <div className="text-center py-12">
@@ -122,6 +122,12 @@ const PatientsPage = () => {
       </motion.div>
     </div>
   );
-};
+}
 
-export default PatientsPage; 
+export default function PatientsPage() {
+  return (
+    <Suspense fallback={<DataLoader message="Loading patients..." />}>
+      <PatientList />
+    </Suspense>
+  );
+} 

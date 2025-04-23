@@ -104,6 +104,43 @@ After deploying to Vercel, make sure to update the CORS configuration in your ba
 - **API Connection Errors**: Verify the API_BASE_URL in api.js is correct
 - **Build Errors**: Check Vercel build logs for any errors
 - **Rendering Issues**: Check browser console for JavaScript errors
+- **Suspense Boundaries**: If you see errors like "useSearchParams() should be wrapped in a suspense boundary", ensure that components using navigation hooks like `useSearchParams` or `useParams` are properly wrapped in a Suspense boundary
+
+### Fixing Suspense Boundary Errors
+
+If you encounter errors related to suspense boundaries during deployment:
+
+1. Wrap components using `useSearchParams` or `useParams` in a Suspense boundary:
+   ```jsx
+   import { Suspense } from 'react';
+   
+   export default function Page() {
+     return (
+       <Suspense fallback={<LoadingComponent />}>
+         <YourClientComponent />
+       </Suspense>
+     );
+   }
+   ```
+
+2. Ensure your `next.config.mjs` has the proper configuration:
+   ```js
+   const nextConfig = {
+     reactStrictMode: true,
+     experimental: {
+       serverComponentsExternalPackages: ['framer-motion'],
+     },
+     // Additional configurations to ignore non-critical errors during build
+     eslint: {
+       ignoreDuringBuilds: true,
+     },
+   };
+   ```
+
+3. For persistent issues, you may need to add a `.env` file with:
+   ```
+   NEXT_PUBLIC_SUSPENSE_ENABLED=1
+   ```
 
 ## Local Development After Deployment
 

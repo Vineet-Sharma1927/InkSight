@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DataLoader from '../../components/DataLoader';
 import ResponseSummaryTable from '../../components/ResponseSummaryTable';
 import { api } from '../../lib/api';
 
-const PatientDetailPage = () => {
+function PatientDetail() {
   const params = useParams();
   const router = useRouter();
   const { patientId } = params;
@@ -281,6 +281,12 @@ const PatientDetailPage = () => {
       </motion.div>
     </div>
   );
-};
+}
 
-export default PatientDetailPage; 
+export default function PatientDetailPage() {
+  return (
+    <Suspense fallback={<DataLoader message="Loading patient data..." />}>
+      <PatientDetail />
+    </Suspense>
+  );
+} 

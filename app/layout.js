@@ -2,6 +2,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import Navbar from './components/Navbar';
 import PageTransition from './components/PageTransition';
+import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,8 +16,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <div className="min-h-screen bg-gray-900">
-          <PageTransition />
           <Navbar />
+          <Suspense fallback={null}>
+            <PageTransition />
+          </Suspense>
           <main className="py-6">{children}</main>
           <footer className="bg-gray-800 border-t border-gray-700">
             <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
