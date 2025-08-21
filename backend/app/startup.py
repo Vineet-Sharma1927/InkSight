@@ -17,16 +17,25 @@ async def check_mongodb_connection():
         
         print(f"Testing MongoDB connection...")
         
-        # Create client with TLS/SSL options
-        client = AsyncIOMotorClient(
-            mongo_uri,
-            serverSelectionTimeoutMS=10000,
-            connectTimeoutMS=10000,
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            tls=True,
-            tlsAllowInvalidCertificates=True
-        )
+        # Create client with appropriate settings for local or cloud MongoDB
+        if "mongodb.net" in mongo_uri or "mongodb+srv" in mongo_uri:
+            # For MongoDB Atlas (cloud) - use SSL/TLS
+            client = AsyncIOMotorClient(
+                mongo_uri,
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000,
+                ssl=True,
+                ssl_cert_reqs=ssl.CERT_NONE,
+                tls=True,
+                tlsAllowInvalidCertificates=True
+            )
+        else:
+            # For local MongoDB - no SSL
+            client = AsyncIOMotorClient(
+                mongo_uri,
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000
+            )
         
         # Force a connection to verify it works
         await client.admin.command('ping')

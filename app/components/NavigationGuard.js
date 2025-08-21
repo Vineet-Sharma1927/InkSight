@@ -19,8 +19,10 @@ const NavigationGuard = ({
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [pendingPath, setPendingPath] = useState(null);
+  const [pendingBack, setPendingBack] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const isNavigatingRef = useRef(false);
+  const hasPushedStateRef = useRef(false);
 
   // Handle browser navigation and tab/window closing
   useEffect(() => {
@@ -50,6 +52,40 @@ const NavigationGuard = ({
       setPrevPathname(pathname);
     }
   }, [pathname]);
+
+  // Intercept browser back/forward navigation when form is dirty
+  useEffect(() => {
+    if (!isDirty) return;
+
+    // Push a dummy state to help us cancel the first back press
+    if (!hasPushedStateRef.current) {
+      try {
+        window.history.pushState({ guard: true }, '', window.location.href);
+        hasPushedStateRef.current = true;
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    const handlePopState = (e) => {
+      if (isDirty && !isNavigatingRef.current) {
+        try {
+          // Immediately push state back to cancel navigation
+          window.history.pushState({ guard: true }, '', window.location.href);
+        } catch (err) {
+          // ignore
+        }
+        setPendingBack(true);
+        setShowDialog(true);
+        isNavigatingRef.current = true;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isDirty]);
 
   // Function to intercept Next.js navigation
   const handleNavigation = useCallback(() => {
@@ -106,6 +142,20 @@ const NavigationGuard = ({
 
   // Function to handle confirmed navigation
   const handleConfirmNavigation = () => {
+    if (pendingBack) {
+      // Allow actual back navigation. Because we pushed a dummy state,
+      // we need to go back two entries to reach the previous page.
+      setTimeout(() => {
+        try {
+          window.history.go(-2);
+        } catch (err) {
+          // Fallback
+          window.history.back();
+        }
+      }, 50);
+      return;
+    }
+
     if (pendingPath) {
       console.log('Confirmed navigation to:', pendingPath);
       // Use setTimeout to ensure the dialog is closed first before navigating
@@ -120,12 +170,14 @@ const NavigationGuard = ({
     setShowDialog(false);
     isNavigatingRef.current = false;
     setPendingPath(null);
+    setPendingBack(false);
   };
 
   console.log('NavigationGuard state:', { 
     isDirty, 
     showDialog, 
     pendingPath, 
+    pendingBack,
     pathname, 
     prevPathname,
     isNavigating: isNavigatingRef.current 

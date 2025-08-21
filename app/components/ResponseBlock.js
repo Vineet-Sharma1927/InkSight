@@ -195,9 +195,11 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
   const [dq, setDq] = useState('');
   const [zScore, setZScore] = useState('');
   const [specialScore, setSpecialScore] = useState([]);
+  const [isPopular, setIsPopular] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
   const [submitMessage, setSubmitMessage] = useState('');
   
@@ -275,6 +277,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     setDq('');
     setZScore('');
     setSpecialScore([]);
+    setIsPopular(false);
     setAnalysisMessage('');
     setSubmitMessage('');
   };
@@ -317,6 +320,34 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     }
   };
 
+  const handleSuggestWithAI = async () => {
+    if (!responseText.trim()) {
+      setAnalysisMessage('Please enter a response text first.');
+      return;
+    }
+    setIsSuggesting(true);
+    setAnalysisMessage('Getting AI suggestions...');
+    try {
+      const data = await api.aiSuggest(responseText, imageId);
+      if (data?.suggestions) {
+        const s = data.suggestions;
+        setLocation(s.location || '');
+        // Determinants and special_scores come as dot-separated string per example
+        if (s.determinants) setDeterminants(s.determinants.split('.'));
+        if (s.special_scores) setSpecialScore(s.special_scores.split('.'));
+        if (s.form_quality) setFq(s.form_quality);
+        setAnalysisMessage('AI suggestions loaded. Please review and adjust as needed.');
+      } else {
+        setAnalysisMessage('No AI suggestions available.');
+      }
+    } catch (e) {
+      console.error(e);
+      setAnalysisMessage('Failed to get AI suggestions.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   const handleSubmitResponse = () => {
     // Validation
     if (!responseText.trim()) {
@@ -343,7 +374,8 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
       z_score: zScore,
       special_score: specialScore,
       location,
-      fq
+      fq,
+      is_popular: isPopular
     };
 
     // Pass the response to the parent component for collection
@@ -531,6 +563,16 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
               >
                 {isAnalyzing ? 'Analyzing...' : 'Analyze'}
               </button>
+              <button
+                type="button"
+                onClick={handleSuggestWithAI}
+                disabled={isSuggesting}
+                className={`px-4 py-2 rounded-md bg-purple-600 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  isSuggesting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                }`}
+              >
+                {isSuggesting ? 'Suggesting...' : 'Suggest with AI'}
+              </button>
             </div>
             <AnimatePresence>
               {analysisMessage && (
@@ -587,6 +629,22 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
             min="1"
             max="99"
           />
+        </div>
+
+        {/* Popular Response Checkbox */}
+        <div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id={`popular-${id}`}
+              checked={isPopular}
+              onChange={(e) => setIsPopular(e.target.checked)}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded mr-2"
+            />
+            <label htmlFor={`popular-${id}`} className="text-sm font-medium text-gray-200">
+              Popular Response
+            </label>
+          </div>
         </div>
 
         {/* Determinants */}

@@ -68,7 +68,8 @@ def test_api_endpoints():
                         "content": ["A"],
                         "dq": "o",
                         "z_score": "",
-                        "special_score": []
+                        "special_score": [],
+                        "is_popular": True
                     }
                 ]
             }

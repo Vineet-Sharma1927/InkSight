@@ -88,5 +88,39 @@ export const api = {
   // Tables info
   async getTablesInfo() {
     return fetchApi('/tables-info');
-  }
+  },
+
+  // AI suggest using Gemini
+  async aiSuggest(responseText, imageId, patientId = null, responseId = null) {
+    return fetchApi('/ai/suggest', {
+      method: 'POST',
+      body: JSON.stringify({
+        patient_response: responseText,
+        image_id: imageId,
+        patient_id: patientId,
+        response_id: responseId,
+      }),
+    });
+  },
+
+  // Save final doctor scores
+  async saveRorschachScores({ patient_id, image_id, response_id, location, determinants, form_quality, special_scores }) {
+    return fetchApi('/save-rorschach-scores', {
+      method: 'POST',
+      body: JSON.stringify({
+        patient_id,
+        image_id,
+        response_id,
+        location,
+        determinants,
+        form_quality,
+        special_scores,
+      }),
+    });
+  },
+
+  // Summary statistics
+  async getSummaryStatistics(patientId) {
+    return fetchApi(`/patient/${patientId}/summary-statistics`);
+  },
 }; 

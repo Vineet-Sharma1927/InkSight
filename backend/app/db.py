@@ -1,7 +1,7 @@
 import motor.motor_asyncio
 from bson import ObjectId
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Annotated
+from typing import List, Optional, Dict, Any, Annotated, Literal
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 import os
 import ssl
@@ -11,30 +11,39 @@ import urllib.parse
 MONGO_URI = os.environ.get("MONGO_URI")
 DATABASE_NAME = os.environ.get("MONGO_DB", "psychological_test_db")
 
-# Configure SSL options for MongoDB Atlas
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-
 # Print connection info for debugging (remove in production)
 print(f"Connecting to MongoDB: DATABASE_NAME={DATABASE_NAME}")
 
-# Create client with SSL options
+# Create client with appropriate settings for local or cloud MongoDB
 try:
     if MONGO_URI:
-        client = motor.motor_asyncio.AsyncIOMotorClient(
-            MONGO_URI,
-            serverSelectionTimeoutMS=20000,
-            connectTimeoutMS=20000,
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            retryWrites=False,
-            tls=True,
-            tlsAllowInvalidCertificates=True
-        )
+        # For MongoDB Atlas (cloud) - use SSL/TLS
+        if "mongodb.net" in MONGO_URI or "mongodb+srv" in MONGO_URI:
+            client = motor.motor_asyncio.AsyncIOMotorClient(
+                MONGO_URI,
+                serverSelectionTimeoutMS=20000,
+                connectTimeoutMS=20000,
+                ssl=True,
+                ssl_cert_reqs=ssl.CERT_NONE,
+                retryWrites=False,
+                tls=True,
+                tlsAllowInvalidCertificates=True
+            )
+        else:
+            # For other MongoDB instances (including local with custom URI)
+            client = motor.motor_asyncio.AsyncIOMotorClient(
+                MONGO_URI,
+                serverSelectionTimeoutMS=20000,
+                connectTimeoutMS=20000
+            )
     else:
-        print("Warning: No MONGO_URI found. Using default localhost connection.")
-        client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
+        # For local MongoDB - no SSL
+        print("No MONGO_URI found. Using default localhost connection without SSL.")
+        client = motor.motor_asyncio.AsyncIOMotorClient(
+            "mongodb://localhost:27017",
+            serverSelectionTimeoutMS=20000,
+            connectTimeoutMS=20000
+        )
     
     db = client[DATABASE_NAME]
     print("MongoDB client initialized successfully")
@@ -47,7 +56,7 @@ except Exception as e:
 # Create indexes
 async def create_indexes():
     try:
-        if db:
+        if db is not None:
             await db.patients.create_index("patient_id", unique=True)
             print("MongoDB indexes created successfully")
         else:
@@ -78,6 +87,10 @@ class ResponseEntry(BaseModel):
     special_score: List[str] = []
     location: str = ""  # Auto-filled by backend
     fq: str = ""  # Auto-filled by backend
+    is_popular: bool = False  # New field for popular responses
+    # New fields for AI suggestions and review tracking
+    gemini_suggestions: Optional[Dict[str, str]] = None
+    status: Literal["pending_review", "completed"] = "pending_review"
     
     model_config = ConfigDict(
         populate_by_name=True,
@@ -92,7 +105,15 @@ class ResponseEntry(BaseModel):
                 "z_score": "ZA", 
                 "special_score": ["DV"],
                 "location": "Dd",
-                "fq": "o"
+                "fq": "o",
+                "is_popular": False,
+                "gemini_suggestions": {
+                    "location": "W",
+                    "determinants": "M.FM.C",
+                    "form_quality": "o",
+                    "special_scores": "AG"
+                },
+                "status": "pending_review"
             }
         }
     )
@@ -117,7 +138,8 @@ class ImageResponse(BaseModel):
                         "z_score": "ZA", 
                         "special_score": ["DV"],
                         "location": "Dd",
-                        "fq": "o"
+                        "fq": "o",
+                        "is_popular": False
                     }
                 ]
             }
@@ -213,7 +235,7 @@ class PatientBasicInfo(BaseModel):
 # Database operations
 async def insert_patient(patient_data: dict) -> str:
     try:
-        if not db:
+        if db is None:
             raise Exception("Database connection not established")
         patient = await db.patients.insert_one(patient_data)
         return str(patient.inserted_id)
@@ -223,7 +245,7 @@ async def insert_patient(patient_data: dict) -> str:
 
 async def get_patient_by_id(patient_id: str) -> Optional[dict]:
     try:
-        if not db:
+        if db is None:
             raise Exception("Database connection not established")
         return await db.patients.find_one({"patient_id": patient_id})
     except Exception as e:
@@ -232,7 +254,7 @@ async def get_patient_by_id(patient_id: str) -> Optional[dict]:
 
 async def get_all_patients() -> List[dict]:
     try:
-        if not db:
+        if db is None:
             raise Exception("Database connection not established")
         patients = []
         cursor = db.patients.find({}, {
@@ -252,7 +274,7 @@ async def get_all_patients() -> List[dict]:
 
 async def update_patient_responses(patient_id: str, responses: List[dict]) -> bool:
     try:
-        if not db:
+        if db is None:
             raise Exception("Database connection not established")
         result = await db.patients.update_one(
             {"patient_id": patient_id}, 

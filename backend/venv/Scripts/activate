@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\DELL\OneDrive\Documents\Rorscarch Software\Website\psychological-test-form\backend\venv"
+VIRTUAL_ENV="C:\Users\HP\OneDrive\Documents\Rorscarch_Software\Website\psychological-test-form\backend\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

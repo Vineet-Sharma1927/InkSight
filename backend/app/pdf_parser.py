@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from rapidfuzz import process, fuzz
 
+
 # For a real application, you would use pdfplumber or PyMuPDF to extract tables from PDF
 # Here we'll use the CSV file as a mock for PDF data
 

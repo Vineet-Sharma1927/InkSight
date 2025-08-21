@@ -36,6 +36,7 @@ const ResponseRow = ({ entry, isEven }) => {
       <td className="px-4 py-3 text-sm">{formatArray(entry.special_score)}</td>
       <td className="px-4 py-3 text-sm text-center">{entry.location || '-'}</td>
       <td className="px-4 py-3 text-sm text-center">{entry.fq || '-'}</td>
+      <td className="px-4 py-3 text-sm text-center">{entry.is_popular ? 'Yes' : 'No'}</td>
     </motion.tr>
   );
 };
@@ -89,6 +90,7 @@ const ImageSection = ({ imageData, imageNumber }) => {
                     <th className="px-4 py-3">Special Score</th>
                     <th className="px-4 py-3 text-center">Location</th>
                     <th className="px-4 py-3 text-center">FQ</th>
+                    <th className="px-4 py-3 text-center">Popular</th>
                   </tr>
                 </thead>
                 <tbody>

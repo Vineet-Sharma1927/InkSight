@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DataLoader from '../../components/DataLoader';
 import ResponseSummaryTable from '../../components/ResponseSummaryTable';
+import SummaryStatistics from '../../components/SummaryStatistics';
 import { api } from '../../lib/api';
 
 function PatientDetail() {
@@ -16,7 +17,7 @@ function PatientDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [viewMode, setViewMode] = useState('detailed'); // Options: 'detailed' or 'summary'
+  const [viewMode, setViewMode] = useState('detailed'); // Options: 'detailed', 'summary', or 'statistics'
 
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -55,9 +56,15 @@ function PatientDetail() {
   // Get the responses for the selected image
   const selectedImageResponses = patient?.responses?.find(r => r.image_number === selectedImage)?.entries || [];
 
-  // Toggle between detailed and summary view
+  // Toggle between detailed, summary, and statistics view
   const toggleViewMode = () => {
-    setViewMode(viewMode === 'detailed' ? 'summary' : 'detailed');
+    if (viewMode === 'detailed') {
+      setViewMode('summary');
+    } else if (viewMode === 'summary') {
+      setViewMode('statistics');
+    } else {
+      setViewMode('detailed');
+    }
   };
 
   return (
@@ -102,7 +109,9 @@ function PatientDetail() {
                 onClick={toggleViewMode}
                 className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
               >
-                {viewMode === 'detailed' ? 'View Summary Table' : 'View Detailed Format'}
+                {viewMode === 'detailed' && 'View Summary Table'}
+                {viewMode === 'summary' && 'View Statistics'}
+                {viewMode === 'statistics' && 'View Detailed Format'}
               </button>
             </div>
 
@@ -201,7 +210,7 @@ function PatientDetail() {
                                     <div className="text-white">{entry.position}</div>
                                   </div>
                                 </div>
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                                   <div>
                                     <div className="text-sm text-gray-400">Location</div>
                                     <div className="text-white">{entry.location}</div>
@@ -217,6 +226,10 @@ function PatientDetail() {
                                   <div>
                                     <div className="text-sm text-gray-400">Z-Score</div>
                                     <div className="text-white">{entry.z_score || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-gray-400">Popular</div>
+                                    <div className="text-white">{entry.is_popular ? "Yes" : "No"}</div>
                                   </div>
                                 </div>
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -262,9 +275,12 @@ function PatientDetail() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : viewMode === 'summary' ? (
               // Summary table view
               <ResponseSummaryTable patient={patient} />
+            ) : (
+              // Statistics view
+              <SummaryStatistics patientId={patientId} />
             )}
           </>
         ) : (
