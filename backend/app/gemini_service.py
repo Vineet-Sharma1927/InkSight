@@ -42,32 +42,78 @@ async def analyze_rorschach_response(patient_response: str, image_id: str) -> Di
     # Provide examples if possible to make the model understand the context better.
     prompt = f"""
     You are an expert Rorschach test scorer. Analyze the following patient response for Rorschach Inkblot Image ID "{image_id}".
-    Extract the following standard Rorschach scoring fields:
-    - **Location (L)**: The area of the blot used (e.g., Whole (W), Common Detail (D), Unusual Detail (Dd)).
-    - **Determinants (D)**: Qualities of the blot that influenced the response (e.g., Form (F), Movement (M), Color (C), Shading (Y, T, V)).
-    - **Form Quality (FQ)**: How accurately the response fits the shape of the blot (e.g., Ordinary (+), Ordinary (o), Unusual (u), Minus (-)).
-    - **Special Scores (SS)**: Any unusual or significant features of the response (e.g., DV, DR, FABCOM, PEC, CON).
+    Extract the following fields ONLY and return STRICT JSON, no prose, no markdown, no code fences:
+    - location (string): one of W, D, Dd, etc.
+    - determinants (string): dot-separated codes (e.g., "M.F.C")
+    - form_quality (string): one of +, o, u, - (or empty)
+    - special_scores (string): comma- or dot-separated list (or empty) (e.g., "DV,IC,IL , Perservation,etc")
+    - content (string): comma- or dot-separated list of content codes (e.g., "H,A,An")
+    - dq (string): developmental quality code one of o, +, u, - , v , v/+ or empty
+    - z_score (string): Z-score value (string) one of ZA , ZD , ZS , ZW  or empty
 
     Patient Response for Image ID {image_id}: "{patient_response}"
 
-    Provide the output as a JSON object with keys: "location", "determinants", "form_quality", "special_scores".
-    For example:
+    Return exactly this JSON shape:
     {{
-      "location": "W",
-      "determinants": "M.F.C",
-      "form_quality": "o",
-      "special_scores": "FABCOM"
+      "location": "",
+      "determinants": "",
+      "form_quality": "",
+      "special_scores": "",
+      "content": "",
+      "dq": "",
+      "z_score": ""
     }}
-    If a field is not applicable or cannot be determined, use an empty string or "N/A".
+    If a field is not applicable, leave it as an empty string.
     """
 
     try:
         # Initialize model (may raise if package missing or API key not set)
         model = get_gemini_model()
-        response = await model.generate_content_async(prompt)
-        import json
-        text = getattr(response, "text", "") or "{}"
-        return json.loads(text.strip())
+        # Force JSON-only responses
+        response = await model.generate_content_async(
+            prompt,
+            generation_config={
+                "response_mime_type": "application/json"
+            }
+        )
+        import json, re
+        text = (getattr(response, "text", "") or "{}").strip()
+
+        # Fast path: direct JSON
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+
+        # Remove common code fences if present
+        if text.startswith("```"):
+            # Strip first and last fence
+            text = re.sub(r"^```[a-zA-Z0-9_-]*\n?|```$", "", text).strip()
+            try:
+                return json.loads(text)
+            except Exception:
+                pass
+
+        # Fallback: extract the first JSON object in the text
+        try:
+            start = text.find('{')
+            end = text.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                candidate = text[start:end+1]
+                return json.loads(candidate)
+        except Exception:
+            pass
+
+        # Final fallback: return empty structured object
+        return {
+            "location": "",
+            "determinants": "",
+            "form_quality": "",
+            "special_scores": "",
+            "content": "",
+            "dq": "",
+            "z_score": ""
+        }
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
         return {"error": str(e)}

@@ -332,9 +332,20 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
       if (data?.suggestions) {
         const s = data.suggestions;
         setLocation(s.location || '');
-        // Determinants and special_scores come as dot-separated string per example
-        if (s.determinants) setDeterminants(s.determinants.split('.'));
-        if (s.special_scores) setSpecialScore(s.special_scores.split('.'));
+        if (s.determinants) {
+          const det = s.determinants.includes('.') ? s.determinants.split('.') : s.determinants.split(',');
+          setDeterminants(det.map(x => x.trim()).filter(Boolean));
+        }
+        if (s.special_scores) {
+          const ss = s.special_scores.includes('.') ? s.special_scores.split('.') : s.special_scores.split(',');
+          setSpecialScore(ss.map(x => x.trim()).filter(Boolean));
+        }
+        if (s.content) {
+          const ct = s.content.includes('.') ? s.content.split('.') : s.content.split(',');
+          setContent(ct.map(x => x.trim()).filter(Boolean));
+        }
+        if (s.dq) setDq(s.dq);
+        if (s.z_score) setZScore(s.z_score);
         if (s.form_quality) setFq(s.form_quality);
         setAnalysisMessage('AI suggestions loaded. Please review and adjust as needed.');
       } else {
@@ -616,7 +627,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
         </div>
 
         {/* Number of Responses */}
-        <div>
+        {/* <div>
           <label className="block text-sm font-medium text-gray-200 mb-1">
             Number of Responses
           </label>
@@ -629,7 +640,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
             min="1"
             max="99"
           />
-        </div>
+        </div> */}
 
         {/* Popular Response Checkbox */}
         <div>

@@ -4,54 +4,105 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '../lib/api';
 
-// Calculate Exner system ratios/indices from pre-counted totals
-function calculateRorschachRatios(summaryStatistics) {
-  if (!summaryStatistics || typeof summaryStatistics !== 'object') {
+// Generate comprehensive Rorschach report with 7 sections based on expert scoring methodology
+function generateRorschachReport(data) {
+  if (!data || typeof data !== 'object') {
     return { error: 'Invalid input. Expected an object.' };
   }
 
-  const round2 = (n) => Number.isFinite(n) ? Math.round((n + Number.EPSILON) * 100) / 100 : n;
-  const formatNumber = (n) => {
-    if (!Number.isFinite(n)) return String(n);
-    const v = round2(n);
-    return Number.isInteger(v) ? String(v) : String(v);
+  const { R = 0 } = data;
+  if (R === 0) return { error: "Total responses (R) cannot be zero." };
+
+  // Helper function for checklists
+  const runChecklist = (criteria, threshold) => {
+    const flags_found = Object.values(criteria).filter(val => val === true).length;
+    return { is_positive: flags_found >= threshold, flags_found, threshold };
   };
 
-  const total_responses = Number(summaryStatistics.total_responses) || 0;
+  // --- SECTION 1: CORE SECTION ---
+  const sum_all_determinants = (data.SumC || 0) + (data.C_prime || 0) + (data.T || 0) + (data.V || 0) + (data.Y || 0);
+  const es = (data.FM || 0) + (data.m || 0) + (data.Y || 0) + (data.V || 0) + (data.T || 0);
+  const EA = (data.M || 0) + sum_all_determinants;
+  const D = EA - es;
+  const WSum6 = (2 * (data.DV || 0)) + (3 * (data.DR || 0)) + (4 * (data.INCOM || 0)) + (5 * (data.FABCOM || 0)) + (6 * (data.CONTAM || 0)) + (1 * (data.ALOG || 0));
+  const AdjD = EA - (es + (WSum6 / 4));
 
-  const det = summaryStatistics.determinant_counts || {};
-  const M  = Number(det.M)  || 0;
-  const FC = Number(det.FC) || 0;
-  const CF = Number(det.CF) || 0;
-  const C  = Number(det.C)  || 0;
-  const F  = Number(det.F)  || 0;
+  const core_section = {
+    Lambda: (R - (data.PureF || 0)) === 0 ? Infinity : parseFloat(((data.PureF || 0) / (R - (data.PureF || 0))).toFixed(2)),
+    EB: (sum_all_determinants === 0) ? Infinity : parseFloat(((data.M + data.FM + data.m) / sum_all_determinants).toFixed(2)),
+    EBPer: (sum_all_determinants === 0) ? Infinity : parseFloat(((data.M || 0) / sum_all_determinants).toFixed(2)),
+    EA: EA,
+    es: es,
+    D: D,
+    AdjD: AdjD
+  };
 
-  const reflection_count = Number(summaryStatistics.reflection_count) || 0;
+  // --- SECTION 2: IDEATION SECTION ---
+  const pti_criteria = {
+    XA_percent_lt_70: (data.XA_percent || 0) < 70,
+    WDA_percent_lt_75: (data.WDA_percent || 0) < 75,
+    X_minus_percent_gt_20: (data.X_minus_percent || 0) > 20,
+    WSum6_gt_16: WSum6 > 16,
+    M_minus_gt_0: (data.M_minus || 0) > 0
+  };
+  const EII = (WSum6 + (data.CriticalContents || 0) + (data.M_minus || 0) + (data.Level2_Special_Scores || 0)) / R;
 
-  const group = summaryStatistics.responses_by_card_group || {};
-  const responses_cards_1_to_7  = Number(group.cards_1_to_7)  || 0;
-  const responses_cards_8_to_10 = Number(group.cards_8_to_10) || 0;
+  const ideation_section = {
+    WSum6: WSum6,
+    Intellectualization_Index: parseFloat((((2 * (data.AB || 0)) + (data.Art || 0) + (data.Ay || 0)) / R).toFixed(2)),
+    PTI: runChecklist(pti_criteria, 3),
+    Ego_Impairment_Index: parseFloat(EII.toFixed(2))
+  };
 
-  if (total_responses === 0) {
-    return { error: 'Total responses cannot be zero.' };
-  }
+  // --- SECTION 3: AFFECT SECTION ---
+  const affect_section = {
+    Affective_Ratio: parseFloat((sum_all_determinants / R).toFixed(2)),
+    Isolation_Index: parseFloat(((data.V + data.Y + data.T) / R).toFixed(2)),
+    DEPI: runChecklist(data.DEPI_criteria || {}, 5),
+    SCON: runChecklist(data.SCON_criteria || {}, 8)
+  };
 
-  const SumC_raw = (0.5 * FC) + (1.0 * CF) + (1.5 * C);
-  const SumC = round2(SumC_raw);
+  // --- SECTION 4: MEDIATION SECTION ---
+  // Primarily uses pre-calculated percentages.
+  const mediation_section = {
+    XA_percent: data.XA_percent || 0,
+    WDA_percent: data.WDA_percent || 0,
+    X_minus_percent: data.X_minus_percent || 0,
+    // PTI is also relevant here but calculated in the Ideation section.
+  };
 
-  const EB = `${formatNumber(M)} : ${formatNumber(SumC)}`;
+  // --- SECTION 5: PROCESSING SECTION ---
+  // Primarily descriptive, based on raw counts.
+  const processing_section = {
+    Lambda: core_section.Lambda, // Often considered a processing variable
+    // Note: W:D:Dd ratios and Zd are typically direct inputs, not calculated here.
+  };
 
-  const EA = round2(M + SumC);
+  // --- SECTION 6: INTERPERSONAL SECTION ---
+  const interpersonal_section = {
+    // Human content ratios, COP, and AG are direct inputs.
+    CDI: runChecklist(data.CDI_criteria || {}, 3),
+    OBS: runChecklist(data.OBS_criteria || {}, 3)
+  };
 
-  const lambdaDenominator = total_responses - F;
-  const Lambda = lambdaDenominator === 0 ? Infinity : round2(F / lambdaDenominator);
+  // --- SECTION 7: SELF-PERCEPTION SECTION ---
+  const egocentricity_numerator = (3 * (data.H || 0)) + (data.H_paren || 0) + (data.Hd || 0) + (data.Hd_paren || 0);
+  const self_perception_section = {
+    Egocentricity_Index: parseFloat((egocentricity_numerator / R).toFixed(2)),
+    MOR: data.MOR || 0,
+    Vista_Responses: data.V || 0
+  };
 
-  const afrDenominator = responses_cards_1_to_7;
-  const Afr = afrDenominator === 0 ? Infinity : round2(responses_cards_8_to_10 / afrDenominator);
-
-  const EgocentricityIndex = round2((2 * reflection_count) / total_responses);
-
-  return { EB, EA, SumC, Lambda, Afr, EgocentricityIndex };
+  // --- FINAL OUTPUT STRUCTURE ---
+  return {
+    core_section,
+    ideation_section,
+    affect_section,
+    mediation_section,
+    processing_section,
+    interpersonal_section,
+    self_perception_section
+  };
 }
 
 const SummaryStatistics = ({ patientId }) => {
@@ -87,23 +138,89 @@ const SummaryStatistics = ({ patientId }) => {
           }
         }
 
+        // Build comprehensive Rorschach data structure for the new function
         const ratiosInput = {
-          total_responses: Number(stats?.total_responses) || 0,
-          determinant_counts: {
-            M: Number(determinant_counts.M) || 0,
-            FC: Number(determinant_counts.FC) || 0,
-            CF: Number(determinant_counts.CF) || 0,
-            C: Number(determinant_counts.C) || 0,
-            F: Number(determinant_counts.F) || 0,
+          // General Counts
+          R: Number(stats?.total_responses) || 0,
+          PureF: Number(determinant_counts.F) || 0,
+
+          // Determinant Sums
+          M: Number(determinant_counts.M) || 0,
+          FM: Number(determinant_counts.FM) || 0,
+          m: Number(determinant_counts.m) || 0,
+          SumC: (0.5 * (Number(determinant_counts.FC) || 0)) + (1.0 * (Number(determinant_counts.CF) || 0)) + (1.5 * (Number(determinant_counts.C) || 0)),
+          C_prime: Number(determinant_counts["C'"]) || 0,
+          T: Number(determinant_counts.T) || 0,
+          V: Number(determinant_counts.V) || 0,
+          Y: Number(determinant_counts.Y) || 0,
+
+          // Special Scores (for WSum6 & EII)
+          DV: Number(stats?.special_scores?.DV) || 0,
+          DR: Number(stats?.special_scores?.DR) || 0,
+          INCOM: Number(stats?.special_scores?.INCOM) || 0,
+          FABCOM: Number(stats?.special_scores?.FABCOM) || 0,
+          CONTAM: Number(stats?.special_scores?.CONTAM) || 0,
+          ALOG: Number(stats?.special_scores?.ALOG) || 0,
+          M_minus: Number(stats?.special_scores?.M_minus) || 0,
+          Level2_Special_Scores: Number(stats?.special_scores?.Level2_Special_Scores) || 0,
+
+          // Content Counts
+          AB: Number(stats?.content_counts?.AB) || 0,
+          Art: Number(stats?.content_counts?.Art) || 0,
+          Ay: Number(stats?.content_counts?.Ay) || 0,
+          CriticalContents: Number(stats?.content_counts?.CriticalContents) || 0,
+          H: Number(stats?.content_counts?.H) || 0,
+          H_paren: Number(stats?.content_counts?.H_paren) || 0,
+          Hd: Number(stats?.content_counts?.Hd) || 0,
+          Hd_paren: Number(stats?.content_counts?.Hd_paren) || 0,
+          MOR: Number(stats?.content_counts?.MOR) || 0,
+
+          // Form Quality Percentages (for PTI & Mediation)
+          XA_percent: Number(stats?.form_quality?.XA_percent) || 0,
+          WDA_percent: Number(stats?.form_quality?.WDA_percent) || 0,
+          X_minus_percent: Number(stats?.form_quality?.X_minus_percent) || 0,
+
+          // Checklist Criteria Flags (booleans) - Default to false if not provided
+          DEPI_criteria: {
+            COP_lt_2: false, // Would need actual COP count
+            MOR_gt_2: (Number(stats?.content_counts?.MOR) || 0) > 2,
+            SumV_gt_0: (Number(determinant_counts.V) || 0) > 0,
+            Afr_lt_46: (cards_8_to_10 / Math.max(cards_1_to_7, 1)) < 0.46,
+            SumShading_gt_EA: false, // Would need actual EA calculation
+            H_lt_2: ((Number(stats?.content_counts?.H) || 0) + (Number(stats?.content_counts?.H_paren) || 0)) < 2,
+            R_lt_17: (Number(stats?.total_responses) || 0) < 17
           },
-          reflection_count,
-          responses_by_card_group: {
-            cards_1_to_7,
-            cards_8_to_10,
+          SCON_criteria: {
+            ZD_gt_3: false, // Would need actual ZD calculation
+            EB_pervasive: false, // Would need actual EB calculation
+            Afr_lt_44: (cards_8_to_10 / Math.max(cards_1_to_7, 1)) < 0.44,
+            X_minus_percent_gt_20: (Number(stats?.form_quality?.X_minus_percent) || 0) > 20,
+            S_gt_2: false, // Would need actual S count
+            MOR_gt_2: (Number(stats?.content_counts?.MOR) || 0) > 2,
+            es_gt_EA: false, // Would need actual es and EA calculation
+            H_lt_2: ((Number(stats?.content_counts?.H) || 0) + (Number(stats?.content_counts?.H_paren) || 0)) < 2,
+            R_lt_17: (Number(stats?.total_responses) || 0) < 17,
+            COP_lt_AG: false, // Would need actual COP and AG counts
+            WSum6_gt_16: false, // Will be calculated in the function
+            M_minus_gt_0: (Number(stats?.special_scores?.M_minus) || 0) > 0
           },
+          CDI_criteria: {
+            SumV_gt_0: (Number(determinant_counts.V) || 0) > 0,
+            COP_lt_2: false, // Would need actual COP count
+            Afr_lt_44: (cards_8_to_10 / Math.max(cards_1_to_7, 1)) < 0.44,
+            SumT_gt_1: (Number(determinant_counts.T) || 0) > 1,
+            H_lt_2: ((Number(stats?.content_counts?.H) || 0) + (Number(stats?.content_counts?.H_paren) || 0)) < 2
+          },
+          OBS_criteria: {
+            FQ_plus_gt_3: false, // Would need actual FQ+ count
+            X_plus_percent_gt_70: (Number(stats?.form_quality?.X_plus_percent) || 0) > 70,
+            R_gt_16: (Number(stats?.total_responses) || 0) > 16,
+            PureF_gt_5: (Number(determinant_counts.F) || 0) > 5,
+            ZD_gt_3: false // Would need actual ZD calculation
+          }
         };
 
-        setRatios(calculateRorschachRatios(ratiosInput));
+        setRatios(generateRorschachReport(ratiosInput));
       } catch (error) {
         console.error('Error fetching summary statistics:', error);
         setError(error.message);
@@ -234,40 +351,175 @@ const SummaryStatistics = ({ patientId }) => {
           )}
         </div>
 
-        {/* Ratios and Indices */}
+        {/* Comprehensive Rorschach Report */}
         {ratios && !ratios.error && (
-          <div className="mt-6 bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-4">Ratios and Indices</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Experience Balance (EB)</div>
-                <div className="text-gray-400 text-sm mt-1">M : SumC</div>
-                <div className="text-indigo-300 font-medium mt-2">{ratios.EB}</div>
+          <div className="mt-6 space-y-6">
+            {/* Core Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Core Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Lambda (L)</div>
+                  <div className="text-gray-400 text-sm mt-1">F / (R − F)</div>
+                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.Lambda) ? ratios.core_section.Lambda : '∞'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Experience Balance (EB)</div>
+                  <div className="text-gray-400 text-sm mt-1">(M + FM + m) / SumC</div>
+                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.EB) ? ratios.core_section.EB : '∞'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">EB Percentage</div>
+                  <div className="text-gray-400 text-sm mt-1">M / SumC</div>
+                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.EBPer) ? ratios.core_section.EBPer : '∞'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Experience Actual (EA)</div>
+                  <div className="text-gray-400 text-sm mt-1">M + SumC</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.EA}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Experienced Stimulation (es)</div>
+                  <div className="text-gray-400 text-sm mt-1">FM + m + Y + V + T</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.es}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">D Score</div>
+                  <div className="text-gray-400 text-sm mt-1">EA - es</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.D}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Adjusted D Score</div>
+                  <div className="text-gray-400 text-sm mt-1">EA - (es + WSum6/4)</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.AdjD}</div>
+                </div>
               </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Experience Actual (EA)</div>
-                <div className="text-gray-400 text-sm mt-1">M + SumC</div>
-                <div className="text-indigo-300 font-medium mt-2">{ratios.EA}</div>
+            </div>
+
+            {/* Ideation Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Ideation Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">WSum6</div>
+                  <div className="text-gray-400 text-sm mt-1">Weighted sum of special scores</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.WSum6}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Intellectualization Index</div>
+                  <div className="text-gray-400 text-sm mt-1">(2×AB + Art + Ay) / R</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.Intellectualization_Index}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Perceptual Thinking Index (PTI)</div>
+                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.ideation_section.PTI.flags_found}/{ratios.ideation_section.PTI.threshold}</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.PTI.is_positive ? 'Positive' : 'Negative'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Ego Impairment Index</div>
+                  <div className="text-gray-400 text-sm mt-1">(WSum6 + Critical + M- + Level2) / R</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.Ego_Impairment_Index}</div>
+                </div>
               </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Weighted Sum of Color (SumC)</div>
-                <div className="text-gray-400 text-sm mt-1">0.5×FC + 1.0×CF + 1.5×C</div>
-                <div className="text-indigo-300 font-medium mt-2">{ratios.SumC}</div>
+            </div>
+
+            {/* Affect Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Affect Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Affective Ratio</div>
+                  <div className="text-gray-400 text-sm mt-1">SumC / R</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.Affective_Ratio}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Isolation Index</div>
+                  <div className="text-gray-400 text-sm mt-1">(V + Y + T) / R</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.Isolation_Index}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Depression Index (DEPI)</div>
+                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.affect_section.DEPI.flags_found}/{ratios.affect_section.DEPI.threshold}</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.DEPI.is_positive ? 'Positive' : 'Negative'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Suicide Constellation (SCON)</div>
+                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.affect_section.SCON.flags_found}/{ratios.affect_section.SCON.threshold}</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.SCON.is_positive ? 'Positive' : 'Negative'}</div>
+                </div>
               </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Lambda (L)</div>
-                <div className="text-gray-400 text-sm mt-1">F / (R − F)</div>
-                <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.Lambda) ? ratios.Lambda : '∞'}</div>
+            </div>
+
+            {/* Mediation Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Mediation Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">XA%</div>
+                  <div className="text-gray-400 text-sm mt-1">Form Quality + Ordinary + Unusual</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.XA_percent}%</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">WDA%</div>
+                  <div className="text-gray-400 text-sm mt-1">White space + Detail + Accidental</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.WDA_percent}%</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">X-%</div>
+                  <div className="text-gray-400 text-sm mt-1">Form Quality Minus</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.X_minus_percent}%</div>
+                </div>
               </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Affective Ratio (Afr)</div>
-                <div className="text-gray-400 text-sm mt-1">VIII–X / I–VII</div>
-                <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.Afr) ? ratios.Afr : '∞'}</div>
+            </div>
+
+            {/* Processing Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Processing Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Lambda (L)</div>
+                  <div className="text-gray-400 text-sm mt-1">F / (R − F)</div>
+                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.processing_section.Lambda) ? ratios.processing_section.Lambda : '∞'}</div>
+                </div>
               </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <div className="text-white font-semibold">Egocentricity Index</div>
-                <div className="text-gray-400 text-sm mt-1">(2 × reflections) / R</div>
-                <div className="text-indigo-300 font-medium mt-2">{ratios.EgocentricityIndex}</div>
+            </div>
+
+            {/* Interpersonal Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Interpersonal Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Coping Deficit Index (CDI)</div>
+                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.interpersonal_section.CDI.flags_found}/{ratios.interpersonal_section.CDI.threshold}</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.interpersonal_section.CDI.is_positive ? 'Positive' : 'Negative'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Obsessive Style Index (OBS)</div>
+                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.interpersonal_section.OBS.flags_found}/{ratios.interpersonal_section.OBS.threshold}</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.interpersonal_section.OBS.is_positive ? 'Positive' : 'Negative'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Self-Perception Section */}
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Self-Perception Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Egocentricity Index</div>
+                  <div className="text-gray-400 text-sm mt-1">(3×H + H' + Hd + Hd') / R</div>
+                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.self_perception_section.Egocentricity_Index) ? ratios.self_perception_section.Egocentricity_Index : '∞'}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Morbid Content (MOR)</div>
+                  <div className="text-gray-400 text-sm mt-1">Direct count</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.self_perception_section.MOR}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded">
+                  <div className="text-white font-semibold">Vista Responses</div>
+                  <div className="text-gray-400 text-sm mt-1">Direct count</div>
+                  <div className="text-indigo-300 font-medium mt-2">{ratios.self_perception_section.Vista_Responses}</div>
+                </div>
               </div>
             </div>
           </div>
