@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ResponseBlock from './ResponseBlock';
 import NavigationGuard from './NavigationGuard';
 import { api } from '../lib/api';
+import { setDoc, doc } from 'firebase/firestore';
+import { patientsCollectionRef } from '../lib/firestoreHelpers';
 
 const PsychologicalTestForm = () => {
   const [responses, setResponses] = useState([{ id: 1 }]);
@@ -133,7 +135,7 @@ const PsychologicalTestForm = () => {
     }
   };
 
-  // Submit all data to the backend
+  // Submit all data to Firestore under the current doctor's scope
   const submitToDatabase = async () => {
     try {
       // Convert form data to patient data structure
@@ -150,18 +152,26 @@ const PsychologicalTestForm = () => {
         test_notes: formData.testNotes,
         responses: patientResponses
       };
-      
-      // Use the API utility to submit patient data
-      const result = await api.submitPatient(patientData);
-      
+      // Write to Firestore at doctors/{uid}/patients/{patient_id}
+      const patientsCol = patientsCollectionRef();
+      const patientDocRef = doc(patientsCol, String(patientData.patient_id));
+      await setDoc(patientDocRef, patientData, { merge: true });
+
+      // Also send to backend (Mongo) if available
+      try {
+        await api.submitPatient(patientData);
+      } catch (e) {
+        console.warn('Mongo submit failed (continuing):', e?.message || e);
+      }
+
       // Show success status with link to results
       setSubmissionStatus({
         success: true,
-        message: `Test completed! Patient data saved with ID: ${result.patient_id}`,
-        patientId: result.patient_id
+        message: `Test completed! Patient data saved with ID: ${patientData.patient_id}`,
+        patientId: patientData.patient_id
       });
       
-      return result;
+      return patientData;
     } catch (error) {
       console.error("Error submitting to database:", error);
       
@@ -265,7 +275,7 @@ const PsychologicalTestForm = () => {
   const hasCurrentImageResponses = (imageResponses[currentImage]?.length || 0) > 0;
 
   return (
-    <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-primary-bg py-12 px-4 sm:px-6 lg:px-8">
       {/* Add NavigationGuard */}
       <NavigationGuard 
         isDirty={formIsDirty && !submissionStatus?.success} 
@@ -277,161 +287,171 @@ const PsychologicalTestForm = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-gray-800 shadow-xl rounded-lg overflow-hidden"
+          className="card shadow-xl overflow-hidden"
         >
           <div className="px-6 py-8">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white">Psychological Test Form</h1>
-              <p className="mt-2 text-gray-400">Complete the assessment for each image</p>
+              <h1 className="text-3xl font-bold text-primary-text">Psychological Test Form</h1>
+              <p className="mt-2 text-secondary-text">Complete the assessment for each image</p>
             </div>
 
             <form onSubmit={handleSubmit}>
               {/* Patient Information */}
-              <div className="mb-8 p-6 bg-gray-700 rounded-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">Patient Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div className="mb-8 p-6 bg-primary-bg rounded-lg border border-accent-border">
+                <h2 className="text-xl font-semibold text-primary-text mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-primary-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                  Patient Information
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="form-label">
                       Patient Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="patientName"
-                    value={formData.patientName}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    </label>
+                    <input
+                      type="text"
+                      name="patientName"
+                      value={formData.patientName}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
                       Patient ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="patientId"
-                    value={formData.patientId}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    </label>
+                    <input
+                      type="text"
+                      name="patientId"
+                      value={formData.patientId}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
                       Age *
-                  </label>
-                  <input
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    </label>
+                    <input
+                      type="number"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      className="form-input"
                       required
                       min="1"
-                    max="120"
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      max="120"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
                       Gender *
-                  </label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">
                       Test Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="testDate"
-                    value={formData.testDate}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Examiner Name
-                  </label>
-                  <input
-                    type="text"
-                    name="examinerName"
-                    value={formData.examinerName}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Test Location
-                  </label>
-                  <input
-                    type="text"
-                    name="testLocation"
-                    value={formData.testLocation}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Test Duration
-                  </label>
-                  <input
-                    type="text"
-                    name="testDuration"
-                    value={formData.testDuration}
-                    onChange={handleInputChange}
-                      className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    </label>
+                    <input
+                      type="date"
+                      name="testDate"
+                      value={formData.testDate}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
+                      Examiner Name
+                    </label>
+                    <input
+                      type="text"
+                      name="examinerName"
+                      value={formData.examinerName}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
+                      Test Location
+                    </label>
+                    <input
+                      type="text"
+                      name="testLocation"
+                      value={formData.testLocation}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
+                      Test Duration
+                    </label>
+                    <input
+                      type="text"
+                      name="testDuration"
+                      value={formData.testDuration}
+                      onChange={handleInputChange}
+                      className="form-input"
                       placeholder="e.g. 45 minutes"
-                  />
-                </div>
-              </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Test Conditions
-                  </label>
-                  <input
-                    type="text"
-                    name="testConditions"
-                    value={formData.testConditions}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="e.g. Quiet room, good lighting"
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Test Notes
-                  </label>
-                  <textarea
-                    name="testNotes"
-                    value={formData.testNotes}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Additional notes about the test"
-                  ></textarea>
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
+                      Test Conditions
+                    </label>
+                    <input
+                      type="text"
+                      name="testConditions"
+                      value={formData.testConditions}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g. Quiet room, good lighting"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">
+                      Test Notes
+                    </label>
+                    <textarea
+                      name="testNotes"
+                      value={formData.testNotes}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="form-input"
+                      placeholder="Additional notes about the test"
+                    ></textarea>
+                  </div>
                 </div>
               </div>
 
               {/* Current Image Section */}
-              <div className="mb-8 p-6 bg-gray-700 rounded-lg">
+              <div className="mb-8 p-6 bg-primary-bg rounded-lg border border-accent-border">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-white">Image {currentImage} Responses</h2>
-                  <div className="px-3 py-1 bg-indigo-600 rounded-md text-sm text-white">
+                  <h2 className="text-xl font-semibold text-primary-text flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-primary-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Image {currentImage} Responses
+                  </h2>
+                  <div className="px-3 py-1 bg-gradient-primary rounded-md text-sm text-primary-text font-medium">
                     {currentImage} of {totalImages}
                   </div>
                 </div>
@@ -455,9 +475,9 @@ const PsychologicalTestForm = () => {
                 <button
                   type="button"
                   onClick={addResponse}
-                  className="w-full py-2 px-4 border border-dashed border-gray-500 rounded-md text-gray-300 hover:bg-gray-600 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                  className="w-full py-3 px-4 border-2 border-dashed border-accent-border rounded-lg text-secondary-text hover:border-primary-accent hover:text-primary-accent hover:bg-primary-accent hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center group"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                   </svg>
                   Add Another Response
@@ -469,23 +489,29 @@ const PsychologicalTestForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`flex-1 py-3 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn btn-primary btn-lg flex-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover-lift'}`}
                 >
-                  {isSubmitting
-                    ? 'Saving...'
-                    : currentImage === totalImages
-                      ? 'Complete Test'
-                      : 'Save Responses'}
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {currentImage === totalImages ? 'Completing...' : 'Saving...'}
+                    </div>
+                  ) : (
+                    currentImage === totalImages ? 'Complete Test' : 'Save Responses'
+                  )}
                 </button>
 
-              {showNextImageButton && (
+                {showNextImageButton && (
                   <button
                     type="button"
                     onClick={handleNextImage}
-                    className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center"
+                    className="btn btn-outline btn-lg flex-1 hover-lift flex items-center justify-center"
                   >
                     Next Image
-                    <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                     </svg>
                   </button>
@@ -494,19 +520,38 @@ const PsychologicalTestForm = () => {
 
               {/* Submission Status */}
               {submissionStatus && (
-                <div className={`mt-6 p-4 rounded-md ${submissionStatus.success ? 'bg-green-700' : 'bg-red-700'}`}>
-                  <p className="text-white">{submissionStatus.message}</p>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mt-6 p-4 rounded-lg border ${
+                    submissionStatus.success 
+                      ? 'bg-success bg-opacity-20 border-success text-success' 
+                      : 'bg-error bg-opacity-20 border-error text-error'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    {submissionStatus.success ? (
+                      <svg className="w-5 h-5 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 mr-2 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    )}
+                    <p className="font-medium">{submissionStatus.message}</p>
+                  </div>
                   {submissionStatus.success && submissionStatus.patientId && (
                     <div className="mt-3">
                       <a 
                         href={`/patients/${submissionStatus.patientId}`}
-                        className="inline-block px-4 py-2 bg-white text-green-700 rounded-md hover:bg-gray-100 transition-colors"
+                        className="btn btn-sm bg-success text-white hover:bg-success hover:bg-opacity-80 transition-colors"
                       >
                         View Patient Details
                       </a>
                     </div>
                   )}
-                </div>
+                </motion.div>
               )}
             </form>
           </div>

@@ -74,17 +74,6 @@ export const api = {
     });
   },
   
-  // Response analysis
-  async analyzeResponse(responseText, imageId) {
-    return fetchApi('/analyze-response', {
-      method: 'POST',
-      body: JSON.stringify({
-        response_text: responseText,
-        image_id: imageId
-      }),
-    });
-  },
-  
   // Tables info
   async getTablesInfo() {
     return fetchApi('/tables-info');

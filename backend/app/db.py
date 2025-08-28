@@ -77,6 +77,7 @@ PyObjectId = Annotated[str, BeforeValidator(validate_object_id)]
 
 # MongoDB models
 class ResponseEntry(BaseModel):
+    response_id: Optional[str] = None
     position: str
     response_text: str
     number_of_responses: int = 1

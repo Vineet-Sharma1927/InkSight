@@ -197,7 +197,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
   const [specialScore, setSpecialScore] = useState([]);
   const [isPopular, setIsPopular] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
@@ -293,32 +293,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     setAnalysisMessage('');
   };
 
-  const handleAnalyzeResponse = async () => {
-    if (!responseText.trim()) {
-      setAnalysisMessage('Please enter a response text first.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setAnalysisMessage('Analyzing response...');
-
-    try {
-      const data = await api.analyzeResponse(responseText, imageId);
-
-      if (data.match_found) {
-        setLocation(data.location);
-        setFq(data.fq);
-        setAnalysisMessage('Analysis complete! Location and FQ updated. Please fill in remaining fields and submit.');
-      } else {
-        setAnalysisMessage('No match found in the reference data.');
-      }
-    } catch (error) {
-      console.error('Error analyzing response:', error);
-      setAnalysisMessage('Error analyzing response. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  // Removed legacy non-AI analyze logic
 
   const handleSuggestWithAI = async () => {
     if (!responseText.trim()) {
@@ -566,16 +541,6 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
               />
               <button
                 type="button"
-                onClick={handleAnalyzeResponse}
-                disabled={isAnalyzing}
-                className={`px-4 py-2 rounded-md bg-blue-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-                }`}
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-              </button>
-              <button
-                type="button"
                 onClick={handleSuggestWithAI}
                 disabled={isSuggesting}
                 className={`px-4 py-2 rounded-md bg-purple-600 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 ${
@@ -610,7 +575,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
               className="px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white"
               data-field="location"
             >
-              {location || "Auto-filled from reference data"}
+              {location || "Will be filled from AI suggestions"}
             </div>
           </div>
           <div>
@@ -621,7 +586,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
               className="px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white"
               data-field="fq"
             >
-              {fq || "Auto-filled from reference data"}
+              {fq || "Will be filled from AI suggestions"}
             </div>
           </div>
         </div>

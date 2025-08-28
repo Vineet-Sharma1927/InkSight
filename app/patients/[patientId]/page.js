@@ -7,6 +7,9 @@ import DataLoader from '../../components/DataLoader';
 import ResponseSummaryTable from '../../components/ResponseSummaryTable';
 import SummaryStatistics from '../../components/SummaryStatistics';
 import { api } from '../../lib/api';
+import { doc, getDoc } from 'firebase/firestore';
+import { patientsCollectionRef } from '../../lib/firestoreHelpers';
+import RequireAuth from '../../components/RequireAuth';
 
 function PatientDetail() {
   const params = useParams();
@@ -23,7 +26,9 @@ function PatientDetail() {
     const fetchPatientData = async () => {
       try {
         setLoading(true);
-        const data = await api.getPatientById(patientId);
+        const ref = doc(patientsCollectionRef(), String(patientId));
+        const snap = await getDoc(ref);
+        const data = snap.exists() ? snap.data() : null;
         setPatient(data);
         
         // If there are responses, select the first image by default
@@ -301,8 +306,10 @@ function PatientDetail() {
 
 export default function PatientDetailPage() {
   return (
-    <Suspense fallback={<DataLoader message="Loading patient data..." />}>
-      <PatientDetail />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<DataLoader message="Loading patient data..." />}>
+        <PatientDetail />
+      </Suspense>
+    </RequireAuth>
   );
-} 
+}

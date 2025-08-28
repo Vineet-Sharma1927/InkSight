@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import PsychologicalTestForm from '../components/PsychologicalTestForm';
+import RequireAuth from '../components/RequireAuth';
 
 export default function FormPage() {
   // Set the page title to make it clear users are in an active test
@@ -15,8 +16,10 @@ export default function FormPage() {
   }, []);
 
   return (
-    <div className="py-6">
-      <PsychologicalTestForm />
-    </div>
+    <RequireAuth>
+      <div className="py-6">
+        <PsychologicalTestForm />
+      </div>
+    </RequireAuth>
   );
 } 

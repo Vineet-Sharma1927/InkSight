@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import DataLoader from '../components/DataLoader';
 import { api } from '../lib/api';
+import { collection, getDocs } from 'firebase/firestore';
+import { patientsCollectionRef } from '../lib/firestoreHelpers';
+import RequireAuth from '../components/RequireAuth';
 
 function PatientList() {
   const [patients, setPatients] = useState([]);
@@ -15,7 +18,8 @@ function PatientList() {
     const fetchPatients = async () => {
       try {
         setLoading(true);
-        const data = await api.getPatients();
+        const snap = await getDocs(patientsCollectionRef());
+        const data = snap.docs.map(d => d.data());
         setPatients(data);
       } catch (error) {
         console.error('Error fetching patients:', error);
@@ -126,8 +130,10 @@ function PatientList() {
 
 export default function PatientsPage() {
   return (
-    <Suspense fallback={<DataLoader message="Loading patients..." />}>
-      <PatientList />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<DataLoader message="Loading patients..." />}>
+        <PatientList />
+      </Suspense>
+    </RequireAuth>
   );
-} 
+}

@@ -236,13 +236,13 @@ const SummaryStatistics = ({ patientId }) => {
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="card">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-[#4A5568] rounded w-1/4 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-3 bg-gray-700 rounded"></div>
-            <div className="h-3 bg-gray-700 rounded w-5/6"></div>
-            <div className="h-3 bg-gray-700 rounded w-4/6"></div>
+            <div className="h-3 bg-[#4A5568] rounded"></div>
+            <div className="h-3 bg-[#4A5568] rounded w-5/6"></div>
+            <div className="h-3 bg-[#4A5568] rounded w-4/6"></div>
           </div>
         </div>
       </div>
@@ -251,8 +251,8 @@ const SummaryStatistics = ({ patientId }) => {
 
   if (error) {
     return (
-      <div className="bg-red-800 text-white p-4 rounded-lg">
-        <p>Error loading statistics: {error}</p>
+      <div className="card border-[#EF4444] bg-[#2D3748]">
+        <p className="text-[#EF4444]">Error loading statistics: {error}</p>
       </div>
     );
   }
@@ -263,15 +263,15 @@ const SummaryStatistics = ({ patientId }) => {
 
   const formatCounts = (counts) => {
     if (!counts || Object.keys(counts).length === 0) {
-      return <span className="text-gray-400">No data</span>;
+      return <span className="text-[#A0AEC0]">No data</span>;
     }
     
     return Object.entries(counts)
       .sort(([,a], [,b]) => b - a) // Sort by count descending
       .map(([key, count]) => (
         <div key={key} className="flex justify-between items-center py-1">
-          <span className="text-gray-300">{key}</span>
-          <span className="text-white font-medium">{count}</span>
+          <span className="text-[#A0AEC0]">{key}</span>
+          <span className="text-[#E2E8F0] font-medium">{count}</span>
         </div>
       ));
   };
@@ -281,26 +281,26 @@ const SummaryStatistics = ({ patientId }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-gray-800 rounded-lg shadow-xl overflow-hidden"
+      className="card shadow-lg"
     >
-      <div className="bg-gray-700 p-6">
-        <h2 className="text-2xl font-bold text-white">Summary Statistics</h2>
-        <p className="text-gray-300 mt-1">Overview of all responses and their classifications</p>
+      <div className="card-header bg-[#4A5568] rounded-t-lg -m-4 mb-4 p-4">
+        <h2 className="card-title text-[#E2E8F0]">Summary Statistics</h2>
+        <p className="text-[#A0AEC0] mt-1">Overview of all responses and their classifications</p>
       </div>
 
-      <div className="p-6">
+      <div className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Responses */}
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Total Responses</h3>
-            <div className="text-3xl font-bold text-indigo-400">{statistics.total_responses}</div>
+          <div className="card hover-lift">
+            <h3 className="card-title text-[#E2E8F0] mb-2">Total Responses</h3>
+            <div className="text-3xl font-bold text-[#8B5CF6]">{statistics.total_responses}</div>
           </div>
 
           {/* Popular Responses */}
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">Popular Responses</h3>
-            <div className="text-3xl font-bold text-green-400">{statistics.popular_responses}</div>
-            <div className="text-sm text-gray-400 mt-1">
+          <div className="card hover-lift">
+            <h3 className="card-title text-[#E2E8F0] mb-2">Popular Responses</h3>
+            <div className="text-3xl font-bold text-[#10B981]">{statistics.popular_responses}</div>
+            <div className="text-sm text-[#A0AEC0] mt-1">
               {statistics.total_responses > 0 
                 ? `${((statistics.popular_responses / statistics.total_responses) * 100).toFixed(1)}% of total`
                 : '0% of total'
@@ -309,24 +309,24 @@ const SummaryStatistics = ({ patientId }) => {
           </div>
 
           {/* Location Totals */}
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-3">Location Totals</h3>
+          <div className="card hover-lift">
+            <h3 className="card-title text-[#E2E8F0] mb-3">Location Totals</h3>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {formatCounts(statistics.location_totals)}
             </div>
           </div>
 
           {/* Determinant Totals */}
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-3">Determinant Totals</h3>
+          <div className="card hover-lift">
+            <h3 className="card-title text-[#E2E8F0] mb-3">Determinant Totals</h3>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {formatCounts(statistics.determinant_totals)}
             </div>
           </div>
 
           {/* DQ Totals */}
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-3">Developmental Quality (DQ) Totals</h3>
+          <div className="card hover-lift">
+            <h3 className="card-title text-[#E2E8F0] mb-3">Developmental Quality (DQ) Totals</h3>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {formatCounts(statistics.dq_totals)}
             </div>
@@ -334,20 +334,20 @@ const SummaryStatistics = ({ patientId }) => {
         </div>
 
         {/* Content Totals - Full Width */}
-        <div className="mt-6 bg-gray-700 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-3">Content Totals</h3>
+        <div className="mt-6 card hover-lift">
+          <h3 className="card-title text-[#E2E8F0] mb-3">Content Totals</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Object.entries(statistics.content_totals)
               .sort(([,a], [,b]) => b - a) // Sort by count descending
               .map(([key, count]) => (
-                <div key={key} className="flex justify-between items-center py-2 px-3 bg-gray-800 rounded">
-                  <span className="text-gray-300 text-sm">{key}</span>
-                  <span className="text-white font-medium">{count}</span>
+                <div key={key} className="flex justify-between items-center py-2 px-3 bg-[#1A202C] rounded">
+                  <span className="text-[#A0AEC0] text-sm">{key}</span>
+                  <span className="text-[#E2E8F0] font-medium">{count}</span>
                 </div>
               ))}
           </div>
           {Object.keys(statistics.content_totals).length === 0 && (
-            <div className="text-gray-400 text-center py-4">No content data available</div>
+            <div className="text-[#A0AEC0] text-center py-4">No content data available</div>
           )}
         </div>
 
@@ -355,170 +355,170 @@ const SummaryStatistics = ({ patientId }) => {
         {ratios && !ratios.error && (
           <div className="mt-6 space-y-6">
             {/* Core Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Core Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Core Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Lambda (L)</div>
-                  <div className="text-gray-400 text-sm mt-1">F / (R − F)</div>
-                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.Lambda) ? ratios.core_section.Lambda : '∞'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Lambda (L)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">F / (R − F)</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{Number.isFinite(ratios.core_section.Lambda) ? ratios.core_section.Lambda : '∞'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Experience Balance (EB)</div>
-                  <div className="text-gray-400 text-sm mt-1">(M + FM + m) / SumC</div>
-                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.EB) ? ratios.core_section.EB : '∞'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Experience Balance (EB)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">(M + FM + m) / SumC</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{Number.isFinite(ratios.core_section.EB) ? ratios.core_section.EB : '∞'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">EB Percentage</div>
-                  <div className="text-gray-400 text-sm mt-1">M / SumC</div>
-                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.core_section.EBPer) ? ratios.core_section.EBPer : '∞'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">EB Percentage</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">M / SumC</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{Number.isFinite(ratios.core_section.EBPer) ? ratios.core_section.EBPer : '∞'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Experience Actual (EA)</div>
-                  <div className="text-gray-400 text-sm mt-1">M + SumC</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.EA}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Experience Actual (EA)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">M + SumC</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.core_section.EA}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Experienced Stimulation (es)</div>
-                  <div className="text-gray-400 text-sm mt-1">FM + m + Y + V + T</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.es}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Experienced Stimulation (es)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">FM + m + Y + V + T</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.core_section.es}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">D Score</div>
-                  <div className="text-gray-400 text-sm mt-1">EA - es</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.D}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">D Score</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">EA - es</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.core_section.D}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Adjusted D Score</div>
-                  <div className="text-gray-400 text-sm mt-1">EA - (es + WSum6/4)</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.core_section.AdjD}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Adjusted D Score</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">EA - (es + WSum6/4)</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.core_section.AdjD}</div>
                 </div>
               </div>
             </div>
 
             {/* Ideation Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Ideation Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Ideation Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">WSum6</div>
-                  <div className="text-gray-400 text-sm mt-1">Weighted sum of special scores</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.WSum6}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">WSum6</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Weighted sum of special scores</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.ideation_section.WSum6}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Intellectualization Index</div>
-                  <div className="text-gray-400 text-sm mt-1">(2×AB + Art + Ay) / R</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.Intellectualization_Index}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Intellectualization Index</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">(2×AB + Art + Ay) / R</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.ideation_section.Intellectualization_Index}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Perceptual Thinking Index (PTI)</div>
-                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.ideation_section.PTI.flags_found}/{ratios.ideation_section.PTI.threshold}</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.PTI.is_positive ? 'Positive' : 'Negative'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Perceptual Thinking Index (PTI)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Flags: {ratios.ideation_section.PTI.flags_found}/{ratios.ideation_section.PTI.threshold}</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.ideation_section.PTI.is_positive ? 'Positive' : 'Negative'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Ego Impairment Index</div>
-                  <div className="text-gray-400 text-sm mt-1">(WSum6 + Critical + M- + Level2) / R</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.ideation_section.Ego_Impairment_Index}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Ego Impairment Index</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">(WSum6 + Critical + M- + Level2) / R</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.ideation_section.Ego_Impairment_Index}</div>
                 </div>
               </div>
             </div>
 
             {/* Affect Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Affect Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Affect Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Affective Ratio</div>
-                  <div className="text-gray-400 text-sm mt-1">SumC / R</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.Affective_Ratio}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Affective Ratio</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">SumC / R</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.affect_section.Affective_Ratio}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Isolation Index</div>
-                  <div className="text-gray-400 text-sm mt-1">(V + Y + T) / R</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.Isolation_Index}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Isolation Index</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">(V + Y + T) / R</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.affect_section.Isolation_Index}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Depression Index (DEPI)</div>
-                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.affect_section.DEPI.flags_found}/{ratios.affect_section.DEPI.threshold}</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.DEPI.is_positive ? 'Positive' : 'Negative'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Depression Index (DEPI)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Flags: {ratios.affect_section.DEPI.flags_found}/{ratios.affect_section.DEPI.threshold}</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.affect_section.DEPI.is_positive ? 'Positive' : 'Negative'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Suicide Constellation (SCON)</div>
-                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.affect_section.SCON.flags_found}/{ratios.affect_section.SCON.threshold}</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.affect_section.SCON.is_positive ? 'Positive' : 'Negative'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Suicide Constellation (SCON)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Flags: {ratios.affect_section.SCON.flags_found}/{ratios.affect_section.SCON.threshold}</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.affect_section.SCON.is_positive ? 'Positive' : 'Negative'}</div>
                 </div>
               </div>
             </div>
 
             {/* Mediation Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Mediation Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Mediation Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">XA%</div>
-                  <div className="text-gray-400 text-sm mt-1">Form Quality + Ordinary + Unusual</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.XA_percent}%</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">XA%</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Form Quality + Ordinary + Unusual</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.mediation_section.XA_percent}%</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">WDA%</div>
-                  <div className="text-gray-400 text-sm mt-1">White space + Detail + Accidental</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.WDA_percent}%</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">WDA%</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">White space + Detail + Accidental</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.mediation_section.WDA_percent}%</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">X-%</div>
-                  <div className="text-gray-400 text-sm mt-1">Form Quality Minus</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.mediation_section.X_minus_percent}%</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">X-%</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Form Quality Minus</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.mediation_section.X_minus_percent}%</div>
                 </div>
               </div>
             </div>
 
             {/* Processing Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Processing Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Processing Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Lambda (L)</div>
-                  <div className="text-gray-400 text-sm mt-1">F / (R − F)</div>
-                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.processing_section.Lambda) ? ratios.processing_section.Lambda : '∞'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Lambda (L)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">F / (R − F)</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{Number.isFinite(ratios.processing_section.Lambda) ? ratios.processing_section.Lambda : '∞'}</div>
                 </div>
               </div>
             </div>
 
             {/* Interpersonal Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Interpersonal Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Interpersonal Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Coping Deficit Index (CDI)</div>
-                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.interpersonal_section.CDI.flags_found}/{ratios.interpersonal_section.CDI.threshold}</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.interpersonal_section.CDI.is_positive ? 'Positive' : 'Negative'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Coping Deficit Index (CDI)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Flags: {ratios.interpersonal_section.CDI.flags_found}/{ratios.interpersonal_section.CDI.threshold}</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.interpersonal_section.CDI.is_positive ? 'Positive' : 'Negative'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Obsessive Style Index (OBS)</div>
-                  <div className="text-gray-400 text-sm mt-1">Flags: {ratios.interpersonal_section.OBS.flags_found}/{ratios.interpersonal_section.OBS.threshold}</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.interpersonal_section.OBS.is_positive ? 'Positive' : 'Negative'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Obsessive Style Index (OBS)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Flags: {ratios.interpersonal_section.OBS.flags_found}/{ratios.interpersonal_section.OBS.threshold}</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.interpersonal_section.OBS.is_positive ? 'Positive' : 'Negative'}</div>
                 </div>
               </div>
             </div>
 
             {/* Self-Perception Section */}
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Self-Perception Section</h3>
+            <div className="card hover-lift">
+              <h3 className="card-title text-[#E2E8F0] mb-4">Self-Perception Section</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Egocentricity Index</div>
-                  <div className="text-gray-400 text-sm mt-1">(3×H + H' + Hd + Hd') / R</div>
-                  <div className="text-indigo-300 font-medium mt-2">{Number.isFinite(ratios.self_perception_section.Egocentricity_Index) ? ratios.self_perception_section.Egocentricity_Index : '∞'}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Egocentricity Index</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">(3×H + H' + Hd + Hd') / R</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{Number.isFinite(ratios.self_perception_section.Egocentricity_Index) ? ratios.self_perception_section.Egocentricity_Index : '∞'}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Morbid Content (MOR)</div>
-                  <div className="text-gray-400 text-sm mt-1">Direct count</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.self_perception_section.MOR}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Morbid Content (MOR)</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Direct count</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.self_perception_section.MOR}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded">
-                  <div className="text-white font-semibold">Vista Responses</div>
-                  <div className="text-gray-400 text-sm mt-1">Direct count</div>
-                  <div className="text-indigo-300 font-medium mt-2">{ratios.self_perception_section.Vista_Responses}</div>
+                <div className="bg-[#1A202C] p-4 rounded-lg border border-[#4A5568] hover:border-[#8B5CF6] transition-colors">
+                  <div className="text-[#E2E8F0] font-semibold">Vista Responses</div>
+                  <div className="text-[#A0AEC0] text-sm mt-1">Direct count</div>
+                  <div className="text-[#8B5CF6] font-medium mt-2">{ratios.self_perception_section.Vista_Responses}</div>
                 </div>
               </div>
             </div>
