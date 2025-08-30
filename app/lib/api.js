@@ -8,7 +8,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 // Base API URLs
 export const API_BASE_URL = isDevelopment 
   ? 'http://localhost:8000' 
-  : 'https://inksight-backend.onrender.com'; // Update this with your actual Render URL once deployed
+  : 'https://insight-test-api.onrender.com'; // Update this with your actual Render URL once deployed
 
 /**
  * Wrapper for fetch API with common configuration
