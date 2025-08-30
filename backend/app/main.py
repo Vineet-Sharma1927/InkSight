@@ -43,8 +43,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "https://ink-sight.vercel.app/"  # Update this with your actual Vercel domain
+        "https://ink-sight.vercel.app",  # Update this with your actual Vercel domain
+        "http://localhost:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
