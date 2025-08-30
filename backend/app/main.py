@@ -29,7 +29,6 @@ from .db import (
 )
 
 from .startup import check_mongodb_connection
-from .pdf_parser import ResponseAnalyzer
 from .gemini_service import analyze_rorschach_response # This import now happens AFTER load_dotenv
 
 
@@ -55,23 +54,12 @@ app.add_middleware(
 # Initialize the response analyzer
 data_dir = Path(__file__).parent.parent / 'data'
 data_dir.mkdir(exist_ok=True)
-analyzer = ResponseAnalyzer(data_dir=str(data_dir))
 
 # Define request and response models
 class AnalyzeRequest(BaseModel):
     response_text: str
     image_id: int
 
-class AnalyzeResponse(BaseModel):
-    location: Optional[str] = None
-    fq: Optional[str] = None
-    match_found: bool
-    message: Optional[str] = None
-
-class TableInfo(BaseModel):
-    image_id: int
-    table_name: str
-    num_rows: int
 
 
 class AISuggestRequest(BaseModel):
@@ -127,13 +115,7 @@ async def root():
     """Root endpoint to check if the API is running."""
     return {"message": "Psychological Test Response Analyzer API is running"}
 
-@app.get("/tables-info", response_model=List[TableInfo])
-async def get_tables_info():
-    """
-    Get information about all tables extracted from the CSV.
-    """
-    tables_info = analyzer.get_tables_info()
-    return tables_info
+
 
 @app.post("/ai/suggest", response_model=AISuggestResponse)
 async def ai_suggest(request: AISuggestRequest):
@@ -211,32 +193,6 @@ async def save_rorschach_scores(payload: SaveScoresRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/analyze-response", response_model=AnalyzeResponse)
-async def analyze_response(request: AnalyzeRequest):
-    """
-    Analyze a response text for a specific image and return location and form quality values.
-
-    Uses fuzzy matching to find the closest match in the reference data.
-    """
-    if not request.response_text or not request.response_text.strip():
-        raise HTTPException(status_code=400, detail="Response text cannot be empty")
-
-    if request.image_id < 1 or request.image_id > 10:
-        raise HTTPException(status_code=400, detail="Image ID must be between 1 and 10")
-
-    result = analyzer.analyze_response(request.response_text, request.image_id)
-
-    if result:
-        return AnalyzeResponse(
-            location=result["location"],
-            fq=result["fq"],
-            match_found=True
-        )
-    else:
-        return AnalyzeResponse(
-            match_found=False,
-            message="No matching response found in reference data"
-        )
 
 # MongoDB Patient Endpoints
 @app.post("/submit-patient", response_model=dict)
