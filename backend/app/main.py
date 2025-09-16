@@ -39,17 +39,37 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware to allow requests from the frontend
+# ==============================================================================
+# === MODIFIED SECTION START ===
+# ==============================================================================
+
+# This is the "guest list" of all the websites/apps allowed to talk to your API
+origins = [
+    # This is for your deployed website
+    "https://ink-sight.vercel.app",
+
+    # This is for your local web development server
+    "http://localhost:3000",
+
+    # --- ADDED LINES FOR YOUR MOBILE APP ---
+    "https://localhost",        # For Capacitor iOS and the origin in your error
+    "http://localhost",         # For Capacitor Android
+    "capacitor://localhost",    # Another potential origin for Capacitor
+]
+
+# Add CORS middleware to allow requests from the frontend and mobile app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://ink-sight.vercel.app",  # Update this with your actual Vercel domain
-        "http://localhost:3000"
-    ],
+    allow_origins=origins, # Use the new, more complete list
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==============================================================================
+# === MODIFIED SECTION END ===
+# ==============================================================================
+
 
 # Initialize the response analyzer
 data_dir = Path(__file__).parent.parent / 'data'
@@ -294,13 +314,13 @@ async def update_responses(patient_id: str, responses: List[ImageResponse]):
 async def get_summary_statistics(patient_id: str):
     """
     Get summary statistics for a patient's responses.
-    
+
     Calculates totals for Location, Determinants, Content, DQ, and Popular responses.
     """
     patient = await get_patient_by_id(patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient with ID {patient_id} not found")
-    
+
     # Initialize counters
     location_totals = {}
     determinant_totals = {}
@@ -308,26 +328,26 @@ async def get_summary_statistics(patient_id: str):
     dq_totals = {}
     popular_responses = 0
     total_responses = 0
-    
+
     # Process all responses
     for image_response in patient.get('responses', []):
         for entry in image_response.get('entries', []):
             total_responses += 1
-            
+
             # Count popular responses
             if entry.get('is_popular', False):
                 popular_responses += 1
-            
+
             # Count locations
             location = entry.get('location', '')
             if location:
                 location_totals[location] = location_totals.get(location, 0) + 1
-            
+
             # Count determinants
             determinants = entry.get('determinants', [])
             for det in determinants:
                 determinant_totals[det] = determinant_totals.get(det, 0) + 1
-            
+
             # Count content
             content = entry.get('content', [])
             for cont in content:
@@ -337,7 +357,7 @@ async def get_summary_statistics(patient_id: str):
             dq_value = entry.get('dq', '')
             if dq_value:
                 dq_totals[dq_value] = dq_totals.get(dq_value, 0) + 1
-    
+
     return SummaryStatistics(
         total_responses=total_responses,
         location_totals=location_totals,
