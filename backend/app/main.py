@@ -114,6 +114,17 @@ async def startup_db_client():
     """
     Startup event to initialize database connection and indexes
     """
+
+    print("==============================================")
+    print("=== CHECKING ENVIRONMENT VARIABLES ON STARTUP ===")
+    mongo_uri_from_env = os.getenv("MONGO_URI")
+    mongo_db_from_env = os.getenv("MONGO_DB")
+    print(f"MONGO_URI found: {mongo_uri_from_env is not None}")
+    print(f"MONGO_DB found: {mongo_db_from_env is not None}")
+    # For security, you might not want to print the full URI in logs
+    # print(f"DEBUG: MONGO_URI = {mongo_uri_from_env}") 
+    print(f"DEBUG: MONGO_DB = {mongo_db_from_env}")
+    print("==============================================")
     print("Starting application initialization...")
 
     # Check MongoDB connection first
