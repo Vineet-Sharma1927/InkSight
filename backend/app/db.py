@@ -1,81 +1,69 @@
-import motor.motor_asyncio
+# db.py
+
+import os
+import ssl
+from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Annotated, Literal
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
-import os
-import ssl
-import urllib.parse
 
-# MongoDB connection - get credentials from environment or use defaults
-MONGO_URI = os.environ.get("MONGO_URI")
-DATABASE_NAME = os.environ.get("MONGO_DB", "psychological_test_db")
+# --- Connection Management ---
 
-# Print connection info for debugging (remove in production)
-print(f"Connecting to MongoDB: DATABASE_NAME={DATABASE_NAME}")
-
-# Create client with appropriate settings for local or cloud MongoDB
-try:
-    if MONGO_URI:
-        # For MongoDB Atlas (cloud) - use SSL/TLS
-        if "mongodb.net" in MONGO_URI or "mongodb+srv" in MONGO_URI:
-            client = motor.motor_asyncio.AsyncIOMotorClient(
-                MONGO_URI,
-                serverSelectionTimeoutMS=20000,
-                connectTimeoutMS=20000,
-                ssl=True,
-                ssl_cert_reqs=ssl.CERT_NONE,
-                retryWrites=False,
-                tls=True,
-                tlsAllowInvalidCertificates=True
-            )
-        else:
-            # For other MongoDB instances (including local with custom URI)
-            client = motor.motor_asyncio.AsyncIOMotorClient(
-                MONGO_URI,
-                serverSelectionTimeoutMS=20000,
-                connectTimeoutMS=20000
-            )
-    else:
-        # For local MongoDB - no SSL
-        print("No MONGO_URI found. Using default localhost connection without SSL.")
-        client = motor.motor_asyncio.AsyncIOMotorClient(
-            "mongodb://localhost:27017",
-            serverSelectionTimeoutMS=20000,
-            connectTimeoutMS=20000
-        )
-    
-    db = client[DATABASE_NAME]
-    print("MongoDB client initialized successfully")
-except Exception as e:
-    print(f"Error initializing MongoDB client: {str(e)}")
-    # Fallback to ensure the app doesn't crash completely during initialization
-    client = None
+class DataStore:
+    client: AsyncIOMotorClient = None
     db = None
 
-# Create indexes
-async def create_indexes():
+db_connection = DataStore()
+
+async def connect_to_mongo():
+    """Initializes the MongoDB client and database connection."""
+    print("Connecting to MongoDB...")
+    MONGO_URI = os.getenv("MONGO_URI")
+    DATABASE_NAME = os.getenv("MONGO_DB")
+    
+    if not MONGO_URI or not DATABASE_NAME:
+        raise ValueError("MONGO_URI and MONGO_DB environment variables must be set.")
+
+    # Simplified and robust client creation
+    db_connection.client = AsyncIOMotorClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=5000,
+        tls=True,  # Generally required for Atlas
+        tlsAllowInvalidCertificates=True # Use with caution, for development/Render
+    )
+    db_connection.db = db_connection.client[DATABASE_NAME]
+    
     try:
-        if db is not None:
-            await db.patients.create_index("patient_id", unique=True)
-            print("MongoDB indexes created successfully")
-        else:
-            print("Cannot create indexes: Database connection not established")
+        await db_connection.client.admin.command('ping')
+        print("✅ MongoDB connection successful.")
+        await create_indexes(db_connection.db)
     except Exception as e:
-        print(f"Error creating indexes: {str(e)}")
+        print(f"❌ MongoDB connection failed: {e}")
 
-# Convert ObjectId to str and validate ObjectId
-def validate_object_id(v: Any) -> ObjectId:
-    if isinstance(v, ObjectId):
-        return v
-    if isinstance(v, str) and ObjectId.is_valid(v):
-        return ObjectId(v)
-    raise ValueError("Invalid ObjectId")
+async def close_mongo_connection():
+    """Closes the MongoDB connection."""
+    if db_connection.client:
+        print("Closing MongoDB connection.")
+        db_connection.client.close()
 
-# ObjectId type
-PyObjectId = Annotated[str, BeforeValidator(validate_object_id)]
+def get_database() -> AsyncIOMotorClient:
+    """Dependency to get the database instance."""
+    return db_connection.db
 
-# MongoDB models
+async def create_indexes(db: AsyncIOMotorClient):
+    """Creates necessary indexes in the database."""
+    try:
+        if db:
+            await db.patients.create_index("patient_id", unique=True)
+            print("MongoDB indexes created successfully.")
+    except Exception as e:
+        print(f"Error creating indexes: {e}")
+
+# --- Pydantic Models (Copied from your original file) ---
+
+PyObjectId = Annotated[str, BeforeValidator(lambda v: str(v))]
+
 class ResponseEntry(BaseModel):
     response_id: Optional[str] = None
     position: str
@@ -86,66 +74,15 @@ class ResponseEntry(BaseModel):
     dq: str = ""
     z_score: str = ""
     special_score: List[str] = []
-    location: str = ""  # Auto-filled by backend
-    fq: str = ""  # Auto-filled by backend
-    is_popular: bool = False  # New field for popular responses
-    # New fields for AI suggestions and review tracking
+    location: str = ""
+    fq: str = ""
+    is_popular: bool = False
     gemini_suggestions: Optional[Dict[str, str]] = None
     status: Literal["pending_review", "completed"] = "pending_review"
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "position": "^",
-                "response_text": "Cockroach",
-                "number_of_responses": 1,
-                "determinants": ["F"],
-                "content": ["A"],
-                "dq": "o",
-                "z_score": "ZA", 
-                "special_score": ["DV"],
-                "location": "Dd",
-                "fq": "o",
-                "is_popular": False,
-                "gemini_suggestions": {
-                    "location": "W",
-                    "determinants": "M.FM.C",
-                    "form_quality": "o",
-                    "special_scores": "AG"
-                },
-                "status": "pending_review"
-            }
-        }
-    )
 
 class ImageResponse(BaseModel):
     image_number: int
     entries: List[ResponseEntry] = []
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "image_number": 1,
-                "entries": [
-                    {
-                        "position": "^",
-                        "response_text": "Cockroach",
-                        "number_of_responses": 1,
-                        "determinants": ["F"],
-                        "content": ["A"],
-                        "dq": "o",
-                        "z_score": "ZA", 
-                        "special_score": ["DV"],
-                        "location": "Dd",
-                        "fq": "o",
-                        "is_popular": False
-                    }
-                ]
-            }
-        }
-    )
 
 class PatientModel(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
@@ -161,127 +98,40 @@ class PatientModel(BaseModel):
     test_notes: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
     responses: List[ImageResponse] = []
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_schema_extra={
-            "example": {
-                "patient_id": "P001",
-                "name": "John Doe",
-                "age": 28,
-                "gender": "Male",
-                "examiner_name": "Dr. Smith",
-                "test_location": "Clinic Room 3",
-                "test_duration": "45 minutes",
-                "test_conditions": "Quiet room, good lighting",
-                "test_notes": "Patient was cooperative",
-                "responses": [
-                    {
-                        "image_number": 1,
-                        "entries": [
-                            {
-                                "position": "^",
-                                "response_text": "Cockroach",
-                                "number_of_responses": 1,
-                                "determinants": ["F"],
-                                "content": ["A"],
-                                "dq": "o",
-                                "z_score": "ZA", 
-                                "special_score": ["DV"],
-                                "location": "Dd",
-                                "fq": "o"
-                            }
-                        ]
-                    }
-                ]
-            }
-        }
-    )
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})
 
-class PatientResponse(BaseModel):
-    id: str = Field(alias="_id")
-    patient_id: str
-    name: str
-    age: int
-    gender: str
-    test_date: datetime
-    examiner_name: str = ""
-    test_location: str = ""
-    test_duration: str = ""
-    test_conditions: str = ""
-    test_notes: str = ""
-    created_at: datetime
-    responses: List[ImageResponse] = []
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True
-    )
+class PatientResponse(PatientModel):
+    pass
 
 class PatientBasicInfo(BaseModel):
-    id: str = Field(alias="_id")
+    id: PyObjectId = Field(..., alias="_id")
     patient_id: str
     name: str
     age: int
     gender: str
     test_date: datetime
     created_at: datetime
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})
+
+# --- Refactored Database Operations ---
+# Each function now accepts 'db' as a parameter.
+
+async def insert_patient(db: AsyncIOMotorClient, patient_data: dict) -> str:
+    patient = await db.patients.insert_one(patient_data)
+    return str(patient.inserted_id)
+
+async def get_patient_by_id(db: AsyncIOMotorClient, patient_id: str) -> Optional[dict]:
+    return await db.patients.find_one({"patient_id": patient_id})
+
+async def get_all_patients(db: AsyncIOMotorClient) -> List[dict]:
+    cursor = db.patients.find({}, {
+        "patient_id": 1, "name": 1, "age": 1, "gender": 1, "test_date": 1, "created_at": 1
+    })
+    return await cursor.to_list(length=1000)
+
+async def update_patient_responses(db: AsyncIOMotorClient, patient_id: str, responses: List[dict]) -> bool:
+    result = await db.patients.update_one(
+        {"patient_id": patient_id}, 
+        {"$set": {"responses": responses}}
     )
-
-# Database operations
-async def insert_patient(patient_data: dict) -> str:
-    try:
-        if db is None:
-            raise Exception("Database connection not established")
-        patient = await db.patients.insert_one(patient_data)
-        return str(patient.inserted_id)
-    except Exception as e:
-        print(f"Error inserting patient: {str(e)}")
-        raise
-
-async def get_patient_by_id(patient_id: str) -> Optional[dict]:
-    try:
-        if db is None:
-            raise Exception("Database connection not established")
-        return await db.patients.find_one({"patient_id": patient_id})
-    except Exception as e:
-        print(f"Error getting patient by ID: {str(e)}")
-        raise
-
-async def get_all_patients() -> List[dict]:
-    try:
-        if db is None:
-            raise Exception("Database connection not established")
-        patients = []
-        cursor = db.patients.find({}, {
-            "patient_id": 1,
-            "name": 1,
-            "age": 1,
-            "gender": 1,
-            "test_date": 1,
-            "created_at": 1
-        })
-        async for document in cursor:
-            patients.append(document)
-        return patients
-    except Exception as e:
-        print(f"Error getting all patients: {str(e)}")
-        return []
-
-async def update_patient_responses(patient_id: str, responses: List[dict]) -> bool:
-    try:
-        if db is None:
-            raise Exception("Database connection not established")
-        result = await db.patients.update_one(
-            {"patient_id": patient_id}, 
-            {"$set": {"responses": responses}}
-        )
-        return result.modified_count > 0
-    except Exception as e:
-        print(f"Error updating patient responses: {str(e)}")
-        return False 
+    return result.modified_count > 0
