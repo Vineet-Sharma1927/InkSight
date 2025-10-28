@@ -1,45 +1,57 @@
-# backend/app/gemini_service.py
 import os
-from pathlib import Path
+import re
+import json
 from typing import Dict
 
-try:
-    from dotenv import load_dotenv
-except Exception:
-    load_dotenv = None
+# --- CORRECT IMPORTS for the 'google-genai' library ---
+from google import genai
+from google.genai.types import HttpOptions
+from google.genai import Client
 
-def _ensure_env_loaded() -> None:
-    """Load environment variables from backend/.env.local if available."""
-    if load_dotenv is None:
-        return
-    backend_root = Path(__file__).resolve().parents[1]
-    env_path = backend_root / ".env.local"
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
-
-
-def get_gemini_model():
-    """Initializes and returns the Gemini Pro model."""
-    _ensure_env_loaded()
+# This function must be defined or imported
+def _ensure_env_loaded():
+    """Loads environment variables from a .env file."""
     try:
-        import google.generativeai as genai
-    except Exception as e:
-        raise RuntimeError("google-generativeai is not installed. Please install it in the backend environment.") from e
-    api_key = os.getenv("GEMINI_API_KEY")
+        from dotenv import load_dotenv
+        # Assuming .env is located correctly relative to where the server starts
+        load_dotenv()
+    except ImportError:
+        print("Warning: python-dotenv not installed. Skipping .env load.")
+        pass
+
+def get_gemini_client():
+    """Initializes and returns the configured Gemini Client (Synchronous)."""
+    _ensure_env_loaded()
+    
+    # Authentication: The client will pick up GEMINI_API_KEY or GOOGLE_API_KEY from the environment
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") 
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set. Create backend/.env.local or set the environment variable.")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-1.5-flash-latest')
+        raise RuntimeError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set.")
+    
+    # We create and return the normal SYNC client
+    # The documentation shows the new client object handles API access directly.
+    client = Client(api_key=api_key) 
+    return client
+
+# --- Create a single global SYNC client ---
+try:
+    GEMINI_CLIENT = get_gemini_client()
+except Exception as e:
+    print(f"FATAL: Could not initialize Gemini Client: {e}")
+    GEMINI_CLIENT = None
+
 
 async def analyze_rorschach_response(patient_response: str, image_id: str) -> Dict[str, str]:
     """
-    Uses Gemini to analyze a patient's Rorschach response and extract scoring fields.
+    Uses Gemini to analyze a patient's Rorschach response.
+    This uses the correct async pattern confirmed by the documentation.
     """
-    model = get_gemini_model()
+    if not GEMINI_CLIENT:
+        return {"error": "Gemini client is not initialized."}
 
-    # Construct the prompt for Gemini. This is critical for good results.
-    # You'll need to refine this prompt heavily through experimentation.
-    # Provide examples if possible to make the model understand the context better.
+    # IMPORTANT: The prompt contains STRONG instructions for STRICT JSON output.
+    # We rely on the model following these instructions, as the configuration 
+    # was causing 400 errors.
     prompt = f"""
     You are an expert Rorschach test scorer. Analyze the following patient response for Rorschach Inkblot Image ID "{image_id}".
     Extract the following fields ONLY and return STRICT JSON, no prose, no markdown, no code fences:
@@ -67,34 +79,30 @@ async def analyze_rorschach_response(patient_response: str, image_id: str) -> Di
     """
 
     try:
-        # Initialize model (may raise if package missing or API key not set)
-        model = get_gemini_model()
-        # Force JSON-only responses
-        response = await model.generate_content_async(
-            prompt,
-            generation_config={
-                "response_mime_type": "application/json"
-            }
+        # --- CORRECT ASYNC CALL FROM DOCUMENTATION ---
+        # 1. Use client.aio for the asynchronous implementation.
+        # 2. Use the model name from the documentation: 'gemini-2.0-flash' (or a compatible version).
+        response = await GEMINI_CLIENT.aio.models.generate_content(
+            model='gemini-2.0-flash', # Correct model name to resolve 404 NOT_FOUND error.
+            contents=prompt
+            # Removed the problematic 'config' parameter to ensure the call works.
         )
-        import json, re
+        
         text = (getattr(response, "text", "") or "{}").strip()
 
-        # Fast path: direct JSON
+        # Your robust JSON parsing logic handles the raw text output.
         try:
             return json.loads(text)
         except Exception:
             pass
 
-        # Remove common code fences if present
         if text.startswith("```"):
-            # Strip first and last fence
             text = re.sub(r"^```[a-zA-Z0-9_-]*\n?|```$", "", text).strip()
             try:
                 return json.loads(text)
             except Exception:
                 pass
 
-        # Fallback: extract the first JSON object in the text
         try:
             start = text.find('{')
             end = text.rfind('}')
@@ -104,16 +112,10 @@ async def analyze_rorschach_response(patient_response: str, image_id: str) -> Di
         except Exception:
             pass
 
-        # Final fallback: return empty structured object
-        return {
-            "location": "",
-            "determinants": "",
-            "form_quality": "",
-            "special_scores": "",
-            "content": "",
-            "dq": "",
-            "z_score": ""
-        }
+        # Final failure state, return an error
+        print(f"Warning: Failed to parse final JSON from AI output. Raw output: {text[:100]}...")
+        return {"error": "Failed to parse final JSON from AI output."}
+        
     except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        return {"error": str(e)}
+        print(f"Error calling Gemini API: {e}") 
+        return {"error": f"Gemini API call failed: {str(e)}"}

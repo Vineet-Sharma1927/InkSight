@@ -48,6 +48,7 @@ async def shutdown_event():
 origins = [
     "https://ink-sight.vercel.app",
     "http://localhost:3000",
+    "http://localhost:3001",
     "https://localhost",
     "http://localhost",
     "capacitor://localhost",
