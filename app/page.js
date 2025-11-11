@@ -29,7 +29,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-secondary-text mb-12 max-w-4xl mx-auto leading-relaxed">
-              Our secure, HIPAA-compliant platform simplifies test administration, automates complex Exner scoring, 
+              Our secure platform simplifies test administration, automates complex Exner scoring, 
               and helps you generate comprehensive psychological reports faster than ever before.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -143,7 +143,7 @@ export default function Home() {
               {
                 icon: "🔒",
                 title: "Secure Storage",
-                description: "Store sensitive patient information with enterprise-grade security. Maintain full HIPAA compliance and confidentiality with encrypted data storage."
+                description: "Store sensitive patient information with enterprise-grade security. Maintain full confidentiality with encrypted data storage."
               }
             ].map((feature, index) => (
               <motion.div
@@ -197,7 +197,7 @@ export default function Home() {
                 title: "Research Psychologist"
               },
               {
-                quote: "Finally, a platform that understands the needs of mental health professionals. The HIPAA compliance gives me complete peace of mind.",
+                quote: "Finally, a platform that understands the needs of mental health professionals. The security and reliability give me complete peace of mind.",
                 author: "Dr. Sarah Johnson",
                 title: "Private Practice"
               }
@@ -227,10 +227,10 @@ export default function Home() {
           >
             <div className="flex flex-wrap justify-center gap-8">
               {[
-                { text: "HIPAA Compliant", icon: "🛡️" },
+                { text: "Secure & Reliable", icon: "🛡️" },
                 { text: "SSL Encrypted", icon: "🔐" },
                 { text: "Clinical & Research Use", icon: "🏥" },
-                { text: "ISO 27001 Certified", icon: "✅" }
+                { text: "Professional Grade", icon: "✅" }
               ].map((badge, index) => (
                 <div key={index} className="flex items-center gap-2 bg-secondary-bg px-4 py-2 rounded-full border border-accent-border hover:border-primary-accent transition-colors">
                   <span className="text-lg">{badge.icon}</span>

@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'InkSight - Professional Rorschach Testing Platform',
-  description: 'Streamline Rorschach scoring with our secure, HIPAA-compliant platform. Automate complex Exner scoring and generate comprehensive psychological reports instantly.',
+  description: 'Streamline Rorschach scoring with our secure platform. Automate complex Exner scoring and generate comprehensive psychological reports instantly.',
 };
 
 export default function RootLayout({ children }) {
@@ -70,7 +70,7 @@ export default function RootLayout({ children }) {
                   <ul className="space-y-2">
                     <li><a href="#" className="text-secondary-text hover:text-primary-text transition-colors">Privacy Policy</a></li>
                     <li><a href="#" className="text-secondary-text hover:text-primary-text transition-colors">Terms of Service</a></li>
-                    <li><a href="#" className="text-secondary-text hover:text-primary-text transition-colors">HIPAA Compliance</a></li>
+                    <li><a href="#" className="text-secondary-text hover:text-primary-text transition-colors">Security</a></li>
                     <li className="text-secondary-text">support@inksight.com</li>
                   </ul>
                 </div>
@@ -83,9 +83,9 @@ export default function RootLayout({ children }) {
                     © 2025 InkSight. All rights reserved.
                   </p>
                   <div className="flex space-x-6 mt-4 md:mt-0">
-                    <span className="text-secondary-text text-sm">HIPAA Compliant</span>
+                    <span className="text-secondary-text text-sm">Secure Platform</span>
                     <span className="text-secondary-text text-sm">SSL Encrypted</span>
-                    <span className="text-secondary-text text-sm">ISO 27001</span>
+                    <span className="text-secondary-text text-sm">Professional Grade</span>
                   </div>
                 </div>
               </div>

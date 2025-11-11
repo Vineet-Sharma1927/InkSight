@@ -53,29 +53,82 @@ async def analyze_rorschach_response(patient_response: str, image_id: str) -> Di
     # We rely on the model following these instructions, as the configuration 
     # was causing 400 errors.
     prompt = f"""
-    You are an expert Rorschach test scorer. Analyze the following patient response for Rorschach Inkblot Image ID "{image_id}".
-    Extract the following fields ONLY and return STRICT JSON, no prose, no markdown, no code fences:
-    - location (string): one of W, D, Dd, etc.
-    - determinants (string): dot-separated codes (e.g., "M.F.C")
-    - form_quality (string): one of +, o, u, - (or empty)
-    - special_scores (string): comma- or dot-separated list (or empty) (e.g., "DV,IC,IL , Perservation,etc")
-    - content (string): comma- or dot-separated list of content codes (e.g., "H,A,An")
-    - dq (string): developmental quality code one of o, +, u, - , v , v/+ or empty
-    - z_score (string): Z-score value (string) one of ZA , ZD , ZS , ZW  or empty
+You are an expert Rorschach Inkblot Test scorer using the Comprehensive System. Analyze the patient's response to Image ID "{image_id}" and provide complete scoring codes.
 
-    Patient Response for Image ID {image_id}: "{patient_response}"
+PATIENT RESPONSE: "{patient_response}"
 
-    Return exactly this JSON shape:
-    {{
-      "location": "",
-      "determinants": "",
-      "form_quality": "",
-      "special_scores": "",
-      "content": "",
-      "dq": "",
-      "z_score": ""
-    }}
-    If a field is not applicable, leave it as an empty string.
+REQUIRED SCORING CODES (You MUST provide a value for EVERY field):
+
+1. LOCATION - Where the response is seen (REQUIRED - select ONE):
+   - W (Whole blot)
+   - D (Common detail)
+   - Dd (Unusual detail)
+   - S (White space)
+   Default to "W" if unclear.
+
+2. DETERMINANTS - What features determine the response (REQUIRED - use dots to separate multiple):
+   Form: F (pure form)
+   Movement: M (human), FM (animal), m (inanimate)
+   Color: C (pure color), CF (color-form), FC (form-color), Cn (color naming)
+   Shading: T (texture), V (vista), Y (diffuse shading)
+   Pairs/Reflections: (2) (pair), Fr/rF (reflection)
+   Default to "F" if unclear.
+
+3. FORM_QUALITY - Quality of the form (REQUIRED - select ONE):
+   - + (superior)
+   - o (ordinary)
+   - u (unusual)
+   - - (minus/poor)
+   Default to "o" if unclear.
+
+4. CONTENT - What is seen (REQUIRED - comma-separated):
+   H (human), A (animal), An (anatomy), Art (art), Ay (anthropology), Bl (blood), 
+   Bt (botany), Cg (clothing), Cl (clouds), Ex (explosion), Fi (fire), Fd (food),
+   Ge (geography), Hh (household), Ls (landscape), Na (nature), Sc (science), Sx (sex)
+   Provide at least one content code. Default to "A" if unclear.
+
+5. DEVELOPMENTAL_QUALITY (DQ) - Synthesis quality (REQUIRED - select ONE):
+   - + (synthesized)
+   - o (ordinary)
+   - v/+ (synthesized vague)
+   - v (vague)
+   Default to "o" for simple responses or "+" if integration is evident.
+
+6. Z_SCORE - Organizational activity (REQUIRED when applicable):
+   - ZW (whole response with integration)
+   - ZA (adjacent detail integration)
+   - ZD (distant detail integration)
+   - ZS (white space integration)
+   Provide "ZW" if whole blot is used with any integration, otherwise leave empty.
+
+7. SPECIAL_SCORES - Cognitive/perceptual issues (comma-separated if present):
+   DV (deviant verbalization), DR (deviant response), INC (incongruous), FAB (fabulized),
+   ALOG (autistic logic), CON (contamination), PSV (perseveration), AG (aggressive),
+   MOR (morbid), PER (personalized), CP (color projection)
+   Provide "MOR" if blood/death/injury mentioned, otherwise leave empty if none apply.
+
+CRITICAL: Return ONLY valid JSON with ALL fields filled. No explanations, no markdown, no code blocks.
+
+{{
+  "location": "",
+  "determinants": "",
+  "form_quality": "",
+  "content": "",
+  "dq": "",
+  "z_score": "",
+  "special_scores": ""
+}}
+
+EXAMPLE for "blood all over the body":
+{{
+  "location": "W",
+  "determinants": "C.F",
+  "form_quality": "u",
+  "content": "Bl,An",
+  "dq": "o",
+  "z_score": "ZW",
+  "special_scores": "MOR"
+}}
     """
 
     try:
