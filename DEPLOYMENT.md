@@ -11,8 +11,93 @@ This guide will walk you through the steps to deploy the InkSight psychological 
 - Render account (https://render.com)
 - Vercel account (https://vercel.com)
 - MongoDB Atlas account (https://www.mongodb.com/cloud/atlas)
+- Firebase account (https://firebase.google.com)
 
-## Step 1: Set up MongoDB Atlas
+## Step 1: Set up Firebase
+
+Firebase is used for user authentication and storing patient data in Firestore.
+
+### 1.1 Create a Firebase Project
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Click "Add project" or select an existing project
+3. Enter a project name (e.g., "InkSight")
+4. Follow the setup wizard (you can disable Google Analytics if not needed)
+
+### 1.2 Enable Authentication
+
+1. In your Firebase project, go to **Authentication** from the left sidebar
+2. Click "Get started"
+3. Enable **Email/Password** authentication:
+   - Click on "Email/Password" in the Sign-in providers list
+   - Toggle "Enable" to ON
+   - Click "Save"
+
+### 1.3 Set up Firestore Database
+
+1. In your Firebase project, go to **Firestore Database** from the left sidebar
+2. Click "Create database"
+3. Choose **Start in production mode** (you'll configure rules later)
+4. Select a Firestore location closest to your users
+5. Click "Enable"
+
+### 1.4 Configure Firestore Security Rules
+
+1. In Firestore Database, go to the **Rules** tab
+2. Replace the default rules with the following to allow authenticated users to access their own data:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to access only their own data
+    match /doctors/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+3. Click "Publish"
+
+### 1.5 Get Firebase Configuration
+
+1. In your Firebase project, go to **Project Settings** (gear icon in the left sidebar)
+2. Scroll down to "Your apps" section
+3. Click on the **Web** icon (`</>`) to add a web app
+4. Register your app with a nickname (e.g., "InkSight Web")
+5. Copy the Firebase configuration object. It will look like:
+
+```javascript
+const firebaseConfig = {
+  apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};
+```
+
+6. Keep this configuration handy - you'll need it for environment variables
+
+### 1.6 Create Environment Variables File
+
+Create a `.env.local` file in the root of your project with your Firebase configuration:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789012
+NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789012:web:abcdef1234567890
+```
+
+**Important**: Never commit `.env.local` to your repository. Make sure it's listed in your `.gitignore` file.
+
+## Step 2: Set up MongoDB Atlas
 
 1. Sign up for a free MongoDB Atlas account
 2. Create a new cluster (the free tier is sufficient to start)
@@ -23,7 +108,7 @@ This guide will walk you through the steps to deploy the InkSight psychological 
    - Copy the connection string (it will look like: `mongodb+srv://username:password@clusterXXX.mongodb.net/`)
    - Replace `<password>` with your database user's password
 
-## Step 2: Deploy the Backend to Render
+## Step 3: Deploy the Backend to Render
 
 1. Push your code to a GitHub repository
 2. Log in to Render and click "New Web Service"
@@ -41,7 +126,7 @@ This guide will walk you through the steps to deploy the InkSight psychological 
 5. Click "Create Web Service"
 6. Note your Render service URL (e.g., `https://inksight-backend.onrender.com`)
 
-## Step 3: Update Frontend API Configuration
+## Step 4: Update Frontend API Configuration
 
 1. Open `app/lib/api.js` and update the `API_BASE_URL` to point to your Render deployment:
    ```javascript
@@ -75,8 +160,30 @@ This guide will walk you through the steps to deploy the InkSight psychological 
    - **Output Directory**: `.next` (should be set automatically)
    - **Install Command**: `npm install` (should be set automatically)
 
-5. Click "Deploy"
-6. Note your Vercel deployment URL (e.g., `https://inksight.vercel.app`)
+5. **Add Environment Variables** in Vercel (very important!):
+   - Click on "Environment Variables" section
+   - Add each of your Firebase configuration values:
+     - `NEXT_PUBLIC_FIREBASE_API_KEY`: Your Firebase API key
+     - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: Your Firebase auth domain
+     - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: Your Firebase project ID
+     - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`: Your Firebase storage bucket
+     - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: Your Firebase messaging sender ID
+     - `NEXT_PUBLIC_FIREBASE_APP_ID`: Your Firebase app ID
+
+6. Click "Deploy"
+7. Note your Vercel deployment URL (e.g., `https://inksight.vercel.app`)
+
+### Important: Configure Firebase for Production Domain
+
+After deploying to Vercel, you need to authorize your Vercel domain in Firebase:
+
+1. Go to your Firebase Console
+2. Navigate to **Authentication** > **Settings** > **Authorized domains**
+3. Click "Add domain"
+4. Add your Vercel domain (e.g., `inksight.vercel.app`)
+5. Click "Add"
+
+This allows Firebase Authentication to work on your production domain.
 
 ## Step 5: Update CORS Configuration
 
@@ -89,11 +196,30 @@ After deploying to Vercel, make sure to update the CORS configuration in your ba
 ## Step 6: Testing the Deployment
 
 1. Visit your Vercel deployment URL
-2. Test creating a new patient/test
-3. Test viewing patient data
-4. Check that all API calls to the backend are working correctly
+2. **Test Authentication**:
+   - Click "Sign Up" to create a new account
+   - Verify you receive a confirmation email (if email verification is enabled)
+   - Log in with your credentials
+   - Test the "Forgot Password" functionality
+3. **Test Patient Management**:
+   - Create a new patient/test
+   - View patient data
+   - Navigate between different images in the test form
+4. **Test Data Persistence**:
+   - Check that responses are saved in both Firebase Firestore and MongoDB
+   - Verify that all API calls to the backend are working correctly
+5. **Test Navigation**:
+   - Verify that the Previous/Next image buttons work
+   - Test that saved responses load correctly when navigating back
 
 ## Troubleshooting
+
+### Firebase Authentication Issues:
+- **"Auth domain not authorized"**: Make sure your Vercel domain is added to Firebase's Authorized domains list
+- **Environment variables not working**: Ensure all `NEXT_PUBLIC_FIREBASE_*` variables are set in Vercel
+- **"Firebase config missing"**: Check browser console for which specific environment variable is missing
+- **Login/Signup not working**: Verify that Email/Password authentication is enabled in Firebase Console
+- **Firestore permission denied**: Check your Firestore security rules allow authenticated users to read/write
 
 ### Backend Issues:
 - **Database Connection Errors**: Verify your MongoDB connection string and network access settings
@@ -213,7 +339,36 @@ If you encounter errors related to suspense boundaries during deployment:
 The API configuration is designed to use the local backend during development and the deployed backend in production.
 
 To run the application locally:
-1. Start the backend server: `cd backend && python run.py`
-2. Start the frontend development server: `npm run dev`
 
-The application will automatically use `http://localhost:8000` as the API base URL when running in development mode. 
+1. **Set up local environment variables**:
+   - Create a `.env.local` file in the project root (if not already created)
+   - Add all Firebase configuration variables as shown in Step 1.6
+
+2. **Start the backend server**: 
+   ```bash
+   cd backend
+   python run.py
+   ```
+
+3. **Start the frontend development server**: 
+   ```bash
+   npm run dev
+   ```
+
+The application will automatically use `http://localhost:8000` as the API base URL when running in development mode.
+
+### Testing Firebase Locally
+
+To test Firebase authentication and Firestore locally:
+
+1. Make sure your `.env.local` file has all the Firebase environment variables
+2. The Firebase configuration will automatically use your production Firebase project
+3. You can create test accounts for development purposes
+4. Firestore data will be stored in your production database (consider creating a separate Firebase project for development)
+
+### Best Practices for Development
+
+1. **Separate Firebase Projects**: Consider creating separate Firebase projects for development and production
+2. **Use Firebase Emulator**: For offline development, you can use the Firebase Local Emulator Suite
+3. **Environment-specific Configuration**: Use different Firebase projects for different environments by conditionally loading config based on `process.env.NODE_ENV`
+4. **Security Rules Testing**: Test Firestore security rules in the Firebase Console's Rules Playground before deploying 

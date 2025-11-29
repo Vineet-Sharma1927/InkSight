@@ -135,3 +135,8 @@ async def update_patient_responses(db: AsyncIOMotorClient, patient_id: str, resp
         {"$set": {"responses": responses}}
     )
     return result.modified_count > 0
+
+async def delete_patient(db: AsyncIOMotorClient, patient_id: str) -> bool:
+    """Delete a patient by patient_id"""
+    result = await db.patients.delete_one({"patient_id": patient_id})
+    return result.deleted_count > 0

@@ -112,4 +112,11 @@ export const api = {
   async getSummaryStatistics(patientId) {
     return fetchApi(`/patient/${patientId}/summary-statistics`);
   },
+
+  // Delete patient
+  async deletePatient(patientId) {
+    return fetchApi(`/patient/${patientId}`, {
+      method: 'DELETE',
+    });
+  },
 }; 

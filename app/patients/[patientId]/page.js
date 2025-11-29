@@ -21,6 +21,7 @@ function PatientDetail() {
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [viewMode, setViewMode] = useState('detailed'); // Options: 'detailed', 'summary', or 'statistics'
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -58,6 +59,34 @@ function PatientDetail() {
     router.push('/patients');
   };
 
+  const handleDeletePatient = async () => {
+    if (!confirm(`Are you sure you want to delete patient "${patient.name}" (ID: ${patientId})? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      // Delete from Firestore
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      await deleteDoc(doc(patientsCollectionRef(), String(patientId)));
+      
+      // Also try to delete from MongoDB backend
+      try {
+        await api.deletePatient(patientId);
+      } catch (e) {
+        console.warn('Backend deletion failed (continuing):', e?.message || e);
+      }
+      
+      alert(`Patient "${patient.name}" deleted successfully.`);
+      router.push('/patients');
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      alert(`Error deleting patient: ${error.message}`);
+      setIsDeleting(false);
+    }
+  };
+
   // Get the responses for the selected image
   const selectedImageResponses = patient?.responses?.find(r => r.image_number === selectedImage)?.entries || [];
 
@@ -79,7 +108,7 @@ function PatientDetail() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <button
             onClick={handleBackClick}
             className="flex items-center text-indigo-400 hover:text-indigo-300"
@@ -89,6 +118,18 @@ function PatientDetail() {
             </svg>
             Back to Patients
           </button>
+          {patient && (
+            <button
+              onClick={handleDeletePatient}
+              disabled={isDeleting}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              {isDeleting ? 'Deleting...' : 'Delete Patient'}
+            </button>
+          )}
         </div>
 
         {loading ? (

@@ -12,6 +12,18 @@ const positionOptions = ['^', '<', '>', 'v', '.'];
 // Determinant options with nested structure
 const determinantOptions = [
   { id: 'F', name: 'F - Form' },
+  { id: 'A', name: 'A - Animal' },
+  { id: 'Hd', name: 'Hd - Human Detail' },
+  { id: 'Bl', name: 'Bl - Blood' },
+  { id: 'H', name: 'H - Human' },
+  { id: '(H)', name: '(H) - Human Parenthetical' },
+  { id: 'Ex', name: 'Ex - Explosion' },
+  { id: 'Geo', name: 'Geo - Geography' },
+  { id: 'c', name: 'c - Color' },
+  { id: 'Fc', name: 'Fc - Form Color' },
+  { id: 'Art', name: 'Art - Art' },
+  { id: 'Arch', name: 'Arch - Architecture' },
+  { id: 'Bot', name: 'Bot - Botany' },
   {
     id: 'Movement',
     name: 'Movement Response',
@@ -82,19 +94,26 @@ const determinantOptions = [
 // Content options with nested structure
 const contentOptions = [
   { id: 'H', name: 'H - Whole Human' },
+  { id: '(H)', name: '(H) - Human Parenthetical' },
   { id: 'Hf', name: 'H - Whole Human Fictional/Mythological' },
   { id: 'Hd', name: 'Hd - Human Details' },
+  { id: '(Hd)', name: '(Hd) - Human Details Parenthetical' },
   { id: 'Hdf', name: 'Hd - Human Details Fictional/Mythological' },
   { id: 'Hx', name: 'Hx - Human Experience' },
   { id: 'A', name: 'A - Whole Animal' },
+  { id: '(A)', name: '(A) - Animal Parenthetical' },
+  { id: 'P', name: 'P - Popular' },
   { id: 'Af', name: 'A - Whole Animal Fictional/Mythological' },
   { id: 'Ad', name: 'Ad - Animal Details' },
   { id: 'Adf', name: 'Ad - Animal Details Fictional/Mythological' },
   { id: 'An', name: 'An - Anatomy' },
+  { id: 'Arch', name: 'Arch - Architecture' },
   { id: 'Art', name: 'Art - Art' },
   { id: 'Ay', name: 'Ay - Anthropology' },
   { id: 'Bl', name: 'Bl - Blood' },
+  { id: 'Bot', name: 'Bot - Botany' },
   { id: 'Bt', name: 'Bt - Botany' },
+  { id: 'd', name: 'd - Detail' },
   { id: 'Cg', name: 'Cg - Clothing' },
   { id: 'Cl', name: 'Cl - Clouds' },
   { id: 'Ex', name: 'Ex - Explosion' },
@@ -108,6 +127,33 @@ const contentOptions = [
   { id: 'Sx', name: 'Sx - Sex' },
   { id: 'Xy', name: 'Xy - X-ray' }
 ];
+
+// Location options with nested structure for D sub-locations
+const locationOptions = [
+  { id: 'W', name: 'W - Whole' },
+  {
+    id: 'D',
+    name: 'D - Detail',
+    children: [
+      { id: 'D', name: 'D - Common Detail' },
+      { id: 'D1', name: 'D1' },
+      { id: 'D2', name: 'D2' },
+      { id: 'D3', name: 'D3' },
+      { id: 'D4', name: 'D4' },
+      { id: 'D5', name: 'D5' },
+      { id: 'D6', name: 'D6' },
+      { id: 'D7', name: 'D7' },
+      { id: 'D8', name: 'D8' },
+      { id: 'D9', name: 'D9' },
+      { id: 'D10', name: 'D10' }
+    ]
+  },
+  { id: 'Dd', name: 'Dd - Unusual Detail' },
+  { id: 'S', name: 'S - White Space' }
+];
+
+// Form Quality options
+const formQualityOptions = ['o', '+', 'u', '-'];
 
 // DQ options
 const dqOptions = ['+', 'o', 'v', '(v/+)'];
@@ -175,6 +221,7 @@ const specialScoreOptions = [
     ]
   },
   { id: 'PER', name: 'PER - Personalized Responses' },
+  { id: 'SC', name: 'SC - Special Content' },
   {
     id: 'SpecialColor',
     name: 'Special Color Phenomenon',
@@ -184,7 +231,7 @@ const specialScoreOptions = [
   }
 ];
 
-const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
+const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit, savedData }) => {
   const [position, setPosition] = useState('');
   const [responseText, setResponseText] = useState('');
   const [location, setLocation] = useState('');
@@ -207,14 +254,33 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
   const [showDeterminantMenu, setShowDeterminantMenu] = useState(false);
   const [showContentMenu, setShowContentMenu] = useState(false);
   const [showSpecialScoreMenu, setShowSpecialScoreMenu] = useState(false);
+  const [showLocationMenu, setShowLocationMenu] = useState(false);
   
   // Refs for dropdown containers
   const determinantMenuRef = useRef(null);
   const contentMenuRef = useRef(null);
   const specialScoreMenuRef = useRef(null);
+  const locationMenuRef = useRef(null);
   
   // Store previous imageId to detect changes
   const prevImageIdRef = useRef(imageId);
+
+  // Initialize fields with saved data
+  useEffect(() => {
+    if (savedData && Object.keys(savedData).length > 1) { // More than just 'id'
+      setPosition(savedData.position || '');
+      setResponseText(savedData.response || '');
+      setLocation(savedData.location || '');
+      setFq(savedData.fq || '');
+      setNumResponses(savedData.num_responses || 1);
+      setDeterminants(savedData.determinants || []);
+      setContent(savedData.content || []);
+      setDq(savedData.dq || '');
+      setZScore(savedData.z_score || '');
+      setSpecialScore(savedData.special_score || []);
+      setIsPopular(savedData.popular || false);
+    }
+  }, [savedData]);
 
   // Reset all fields when imageId changes
   useEffect(() => {
@@ -255,6 +321,15 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
       ) {
         setShowSpecialScoreMenu(false);
       }
+      
+      // Close location menu if clicked outside
+      if (
+        showLocationMenu && 
+        locationMenuRef.current && 
+        !locationMenuRef.current.contains(event.target)
+      ) {
+        setShowLocationMenu(false);
+      }
     }
     
     // Add event listener
@@ -264,7 +339,7 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDeterminantMenu, showContentMenu, showSpecialScoreMenu]);
+  }, [showDeterminantMenu, showContentMenu, showSpecialScoreMenu, showLocationMenu]);
 
   const clearForm = () => {
     setPosition('');
@@ -415,6 +490,15 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
     }
   };
 
+  // Helper function to handle location selection
+  const toggleLocation = (locationId) => {
+    setLocation(locationId);
+    // Close the dropdown after selection (unless it's a parent category)
+    if (!locationOptions.find(opt => opt.id === locationId && opt.children)) {
+      setShowLocationMenu(false);
+    }
+  };
+
   // Helper function to render nested options
   const renderNestedOptions = (options, toggleFn, selectedValues) => {
     return options.map(option => {
@@ -438,6 +522,38 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded mr-2"
             />
             <label htmlFor={`option-${option.id}`} className="text-sm text-gray-200">
+              {option.name}
+            </label>
+          </div>
+        );
+      }
+    });
+  };
+
+  // Helper function to render nested location options with radio buttons
+  const renderNestedLocationOptions = (options, toggleFn, selectedValue) => {
+    return options.map(option => {
+      if (option.children) {
+        return (
+          <div key={option.id} className="mb-3">
+            <div className="text-sm font-medium text-gray-200 mb-1">{option.name}</div>
+            <div className="pl-3 border-l border-gray-500">
+              {renderNestedLocationOptions(option.children, toggleFn, selectedValue)}
+            </div>
+          </div>
+        );
+      } else {
+        return (
+          <div key={option.id} className="flex items-center mb-2">
+            <input
+              type="radio"
+              id={`location-${option.id}`}
+              name="location-selection"
+              checked={selectedValue === option.id}
+              onChange={() => toggleFn(option.id)}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-500 mr-2"
+            />
+            <label htmlFor={`location-${option.id}`} className="text-sm text-gray-200">
               {option.name}
             </label>
           </div>
@@ -567,27 +683,48 @@ const ResponseBlock = ({ id, onRemove, imageId, onResponseSubmit }) => {
 
         {/* Location and Form Quality */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div ref={locationMenuRef}>
             <label className="block text-sm font-medium text-gray-200 mb-1">
               Location
             </label>
             <div 
-              className="px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white"
-              data-field="location"
+              className="px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white cursor-pointer flex justify-between items-center"
+              onClick={() => setShowLocationMenu(!showLocationMenu)}
             >
-              {location || "Will be filled from AI suggestions"}
+              <span>{location || 'Select location'}</span>
+              <ChevronUpDownIcon className="h-5 w-5 text-gray-400" />
             </div>
+            
+            {showLocationMenu && (
+              <div className="mt-1 p-3 bg-gray-800 border border-gray-500 rounded-md max-h-60 overflow-y-auto">
+                {renderNestedLocationOptions(locationOptions, toggleLocation, location)}
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationMenu(false)}
+                    className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-1">
               Form Quality (FQ)
             </label>
-            <div 
-              className="px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white"
-              data-field="fq"
+            <select
+              name="fq"
+              value={fq}
+              onChange={(e) => setFq(e.target.value)}
+              className="w-full px-4 py-2 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              {fq || "Will be filled from AI suggestions"}
-            </div>
+              <option value="">Select FQ</option>
+              {formQualityOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
           </div>
         </div>
 

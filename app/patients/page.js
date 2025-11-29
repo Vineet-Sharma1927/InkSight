@@ -13,6 +13,7 @@ function PatientList() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -31,6 +32,37 @@ function PatientList() {
 
     fetchPatients();
   }, []);
+
+  const handleDeletePatient = async (patientId, patientName) => {
+    if (!confirm(`Are you sure you want to delete patient "${patientName}" (ID: ${patientId})? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(patientId);
+      
+      // Delete from Firestore
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      await deleteDoc(doc(patientsCollectionRef(), String(patientId)));
+      
+      // Also try to delete from MongoDB backend
+      try {
+        await api.deletePatient(patientId);
+      } catch (e) {
+        console.warn('Backend deletion failed (continuing):', e?.message || e);
+      }
+      
+      // Remove from local state
+      setPatients(patients.filter(p => p.patient_id !== patientId));
+      
+      alert(`Patient "${patientName}" deleted successfully.`);
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      alert(`Error deleting patient: ${error.message}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Function to format date
   const formatDate = (dateString) => {
@@ -83,7 +115,7 @@ function PatientList() {
                         Test Date
                       </th>
                       <th scope="col" className="relative px-6 py-3">
-                        <span className="sr-only">View</span>
+                        <span className="sr-only">Actions</span>
                       </th>
                     </tr>
                   </thead>
@@ -107,13 +139,25 @@ function PatientList() {
                           <div className="text-sm text-white">{formatDate(patient.test_date)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Link 
-                            href={`/patients/${patient.patient_id}`}
-                            className="text-indigo-400 hover:text-indigo-300"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View
-                          </Link>
+                          <div className="flex justify-end space-x-3">
+                            <Link 
+                              href={`/patients/${patient.patient_id}`}
+                              className="text-indigo-400 hover:text-indigo-300"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View
+                            </Link>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePatient(patient.patient_id, patient.name);
+                              }}
+                              disabled={deletingId === patient.patient_id}
+                              className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {deletingId === patient.patient_id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

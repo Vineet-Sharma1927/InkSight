@@ -102,6 +102,7 @@ const PsychologicalTestForm = () => {
   };
       
   // Save the current image responses and update patientResponses
+  // Returns the updated array of patient responses
   const saveCurrentImageResponses = () => {
     try {
       // Get responses for current image
@@ -116,27 +117,41 @@ const PsychologicalTestForm = () => {
         entries: entries
       };
       
-      // Update the patientResponses state with the new image response
+      // Build the updated responses array directly (before setState)
+      let updatedResponses;
       setPatientResponses(prev => {
         const existingIndex = prev.findIndex(r => r.image_number === currentImage);
         if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = imageResponse;
-          return updated;
+          updatedResponses = [...prev];
+          updatedResponses[existingIndex] = imageResponse;
         } else {
-          return [...prev, imageResponse];
+          updatedResponses = [...prev, imageResponse];
         }
+        return updatedResponses;
       });
       
-      return true;
+      // Return the updated responses array so it can be used immediately
+      // Since updatedResponses is set in the callback above, we need to ensure it's defined
+      if (!updatedResponses) {
+        // Fallback: build it manually if the setState callback hasn't run
+        const existingIndex = patientResponses.findIndex(r => r.image_number === currentImage);
+        if (existingIndex >= 0) {
+          updatedResponses = [...patientResponses];
+          updatedResponses[existingIndex] = imageResponse;
+        } else {
+          updatedResponses = [...patientResponses, imageResponse];
+        }
+      }
+      
+      return updatedResponses;
     } catch (error) {
       console.error("Error saving responses:", error);
-      return false;
+      return null;
     }
   };
 
   // Submit all data to Firestore under the current doctor's scope
-  const submitToDatabase = async () => {
+  const submitToDatabase = async (responsesToSubmit) => {
     try {
       // Convert form data to patient data structure
       const patientData = {
@@ -150,7 +165,7 @@ const PsychologicalTestForm = () => {
         test_duration: formData.testDuration,
         test_conditions: formData.testConditions,
         test_notes: formData.testNotes,
-        responses: patientResponses
+        responses: responsesToSubmit || patientResponses
       };
       // Write to Firestore at doctors/{uid}/patients/{patient_id}
       const patientsCol = patientsCollectionRef();
@@ -203,17 +218,17 @@ const PsychologicalTestForm = () => {
     }
 
     try {
-      // Save current image responses
-      const saved = saveCurrentImageResponses();
+      // Save current image responses and get the updated responses array
+      const updatedResponses = saveCurrentImageResponses();
       
-      if (!saved) {
+      if (!updatedResponses) {
         throw new Error("Failed to save current image responses");
       }
       
       // If this is the last image, submit the entire test
       if (currentImage === totalImages) {
-        // Submit all data to the backend
-        const result = await submitToDatabase();
+        // Submit all data to the backend with the freshly updated responses
+        const result = await submitToDatabase(updatedResponses);
         
         if (result) {
           // Reset form for a new test
@@ -254,20 +269,55 @@ const PsychologicalTestForm = () => {
         // Save current image responses first
         saveCurrentImageResponses();
         
-      // Increment to the next image
-      setCurrentImage(currentImage + 1);
+        // Increment to the next image
+        const nextImage = currentImage + 1;
+        setCurrentImage(nextImage);
         
-        // Clear responses completely and create a fresh one
-        // Using a unique timestamp as part of the ID to ensure React treats this as a completely new component
-        const newId = Date.now();
-        setResponses([{ id: newId }]);
+        // Load existing responses for the next image, or create a fresh one
+        loadResponsesForImage(nextImage);
         
         // Reset UI state
-      setShowNextImageButton(false);
+        setShowNextImageButton(false);
       } catch (error) {
         console.error("Error moving to next image:", error);
         alert("There was an error moving to the next image. Please try again.");
       }
+    }
+  };
+
+  const handlePreviousImage = async () => {
+    if (currentImage > 1) {
+      try {
+        // Save current image responses first
+        saveCurrentImageResponses();
+        
+        // Decrement to the previous image
+        const prevImage = currentImage - 1;
+        setCurrentImage(prevImage);
+        
+        // Load existing responses for the previous image
+        loadResponsesForImage(prevImage);
+        
+        // Reset UI state
+        setShowNextImageButton(false);
+      } catch (error) {
+        console.error("Error moving to previous image:", error);
+        alert("There was an error moving to the previous image. Please try again.");
+      }
+    }
+  };
+
+  // Load responses for a specific image
+  const loadResponsesForImage = (imageNumber) => {
+    const savedResponses = imageResponses[imageNumber];
+    
+    if (savedResponses && savedResponses.length > 0) {
+      // Load existing responses with full data
+      setResponses(savedResponses);
+    } else {
+      // Create a fresh response block
+      const newId = Date.now();
+      setResponses([{ id: newId }]);
     }
   };
 
@@ -463,9 +513,10 @@ const PsychologicalTestForm = () => {
                     <ResponseBlock
                       key={response.id}
                       id={response.id}
-                        onRemove={removeResponse}
+                      onRemove={removeResponse}
                       imageId={currentImage}
-                        onResponseSubmit={handleResponseSubmit}
+                      onResponseSubmit={handleResponseSubmit}
+                      savedData={response}
                     />
                   ))}
                 </AnimatePresence>
@@ -485,14 +536,15 @@ const PsychologicalTestForm = () => {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col gap-4">
+                {/* Save/Submit Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`btn btn-primary btn-lg flex-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover-lift'}`}
+                  className={`btn btn-primary btn-lg w-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover-lift'}`}
                 >
                   {isSubmitting ? (
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center">
                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -504,18 +556,40 @@ const PsychologicalTestForm = () => {
                   )}
                 </button>
 
-                {showNextImageButton && (
+                {/* Navigation Buttons */}
+                <div className="flex gap-4">
+                  {/* Previous Image Button */}
                   <button
                     type="button"
-                    onClick={handleNextImage}
-                    className="btn btn-outline btn-lg flex-1 hover-lift flex items-center justify-center"
+                    onClick={handlePreviousImage}
+                    disabled={currentImage === 1}
+                    className={`btn btn-outline btn-lg flex-1 flex items-center justify-center ${
+                      currentImage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover-lift'
+                    }`}
                   >
-                    Next Image
-                    <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
+                    Previous Image
                   </button>
-                )}
+
+                  {/* Next Image Button */}
+                  {(showNextImageButton || currentImage < totalImages) && (
+                    <button
+                      type="button"
+                      onClick={handleNextImage}
+                      disabled={currentImage === totalImages}
+                      className={`btn btn-outline btn-lg flex-1 flex items-center justify-center ${
+                        currentImage === totalImages ? 'opacity-50 cursor-not-allowed' : 'hover-lift'
+                      }`}
+                    >
+                      Next Image
+                      <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Submission Status */}
