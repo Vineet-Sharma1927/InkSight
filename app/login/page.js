@@ -8,8 +8,8 @@ import { auth } from '../lib/firebaseClient';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('vineet11vinu@gmail.com');
+  const [password, setPassword] = useState('vineet@1821');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
